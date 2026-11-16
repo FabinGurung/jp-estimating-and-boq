@@ -10,6 +10,10 @@ on:
         description: Fail if authenticated Sheets refresh cannot run
         type: boolean
         default: true
+      require_contractor_live:
+        description: Fail unless optional Contractor Bills authenticated read succeeds (requires source secret and Google sheet access)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -54,6 +58,9 @@ jobs:
           node --check vendor-bills-status.js
           node scripts/qa-vendor-bills-status.mjs
           python3 scripts/build_vendor_bills_public.py --check
+          node --check contractor-bills-status.js
+          node scripts/qa-contractor-bills-status.mjs
+          python3 scripts/build_contractor_bills_public.py --check
           node scripts/qa-all-site-routes.mjs
           node scripts/qa-cardinal-layout.mjs
           node scripts/qa-amrit-source-version.mjs
@@ -178,6 +185,33 @@ jobs:
             echo 'Vendor Bills: verified snapshot used. The optional source secret is unset.' >> "$GITHUB_STEP_SUMMARY"
             if [[ "$REQUIRE_LIVE" == 'true' ]]; then
               echo '::error::Missing JP_VENDOR_BILLS_SHEET_ID: authenticated Vendor Bills refresh was required.'
+              exit 1
+            fi
+          fi
+
+      - name: Refresh Contractor Bills counts on an explicit manual run
+        if: github.event_name == 'workflow_dispatch' && steps.google_connection.outputs.configured == 'true'
+        env:
+          JP_CONTRACTOR_BILLS_SHEET_ID: ${{ secrets.JP_CONTRACTOR_BILLS_SHEET_ID }}
+          REQUIRE_CONTRACTOR: ${{ inputs.require_contractor_live || false }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$JP_CONTRACTOR_BILLS_SHEET_ID" ]]; then
+            python3 scripts/build_contractor_bills_public.py --output _site/data/contractor-bills-status.v1.json
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('_site/data/contractor-bills-status.v1.json').read_text())
+          assert p['sourceMode']=='MANUAL_AUTHENTICATED_READ'
+          assert p['approvedClaims']==0
+          assert p['historicalRows']>=0 and p['workRows']>0
+          PY
+            echo 'Contractor Bills: authenticated read-only aggregate refresh validated; no claims certified.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Contractor Bills: verified V000002 snapshot used. Optional source secret is unset.' >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$REQUIRE_CONTRACTOR" == 'true' ]]; then
+              echo '::error::Missing JP_CONTRACTOR_BILLS_SHEET_ID: explicit Contractor Bills authenticated read was required.'
               exit 1
             fi
           fi

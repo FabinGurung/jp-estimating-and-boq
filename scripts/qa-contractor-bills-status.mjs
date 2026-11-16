@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const status=JSON.parse(read('data/contractor-bills-status.v1.json'));
+const page=read('memory-posters.html');
+const guide=read('source-sheets.html');
+const workflow=read('.github/workflows/deploy-research-pages.yml');
+const importer=read('scripts/build_contractor_bills_public.py');
+assert.equal(status.schema,'jp.contractor-bills-status.v1');
+assert.equal(status.revision,'V000002');
+assert.equal(status.normalizedDataRevision,'V000001');
+assert.equal(status.sourceMode,'VERIFIED_SNAPSHOT');
+for(const [name,n] of Object.entries({sourceTabs:6,sourceRows:80,claimRows:2,workRows:33,
+    historicalRows:34,comparisonRows:5,reviewFlags:16,approvedClaims:0}))
+ assert.equal(status[name],n,name);
+assert(page.includes('id="contractor-bills-intake"'));
+assert(page.includes('id="contractor-bills-status"'));
+assert(page.includes('src="contractor-bills-status.js"'));
+assert(page.includes('V000002 contractor QA'));
+assert(page.includes('33 primary work lines'));
+assert(guide.includes('id="contractorBillsManualSource"'));
+assert(guide.includes('03 — Bill of Contractors — Working Register — LIVE'));
+assert(guide.includes('V000002')&&guide.includes('16 OPEN'));
+assert(workflow.includes('JP_CONTRACTOR_BILLS_SHEET_ID'));
+assert(workflow.includes('secrets.JP_CONTRACTOR_BILLS_SHEET_ID'));
+assert(workflow.includes('scripts/build_contractor_bills_public.py --check'));
+assert(workflow.includes('node scripts/qa-contractor-bills-status.mjs'));
+assert(workflow.includes('github.event_name == \'workflow_dispatch\''));
+assert(!/^\s*schedule:/m.test(workflow));
+assert(importer.includes('spreadsheets.readonly'));
+assert(importer.includes('MANUAL_AUTHENTICATED_READ'));
+assert(importer.includes('HISTORICAL_DOUBLE_COUNT'));
+assert(!/1wR99Ww0BcEVecmstH6zSuax-LYhb7UhzYgcnsena-b0/.test(page+guide+importer));
+assert(!/docs\.google\.com\/spreadsheets\/d\//.test(page));
+console.log('CONTRACTOR BILLS V000002 PASS: 6 source tabs, 80 indexed, 2 claims, 33 primary work, 34 non-additive history, 16 open, no approved claims; no cron or private ID.');

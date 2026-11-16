@@ -4,10 +4,10 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const catalog=JSON.parse(read('data/connected-website-sheets.v1.json'));
 const reg=JSON.parse(read('site-page-registry.v0.8.json'));
 assert.equal(catalog.schema,'jp.website.connected-source-sheets.v1');
-assert.equal(catalog.records.length,7);
-assert.equal(new Set(catalog.records.map(r=>r.ref)).size,7);
+assert.equal(catalog.records.length,8);
+assert.equal(new Set(catalog.records.map(r=>r.ref)).size,8);
 assert(catalog.folderUrl.startsWith('https://drive.google.com/drive/folders/'));
-const expected=['JP-AEC-RATE-MASTER','RE-AMRIT-RATE-LIVE','RE-AMRIT-QTO-BOQ-LIVE','JP-COSTING-MASTER-TEMPLATE','RE-KKG-FINANCE-LIVE','JP-FABIN-PAYMENTS-LIVE','JP-VENDOR-BILLS-LIVE'];
+const expected=['JP-AEC-RATE-MASTER','RE-AMRIT-RATE-LIVE','RE-AMRIT-QTO-BOQ-LIVE','JP-COSTING-MASTER-TEMPLATE','RE-KKG-FINANCE-LIVE','JP-FABIN-PAYMENTS-LIVE','JP-VENDOR-BILLS-LIVE','JP-CONTRACTOR-BILLS-LIVE'];
 assert.deepEqual(catalog.records.map(r=>r.ref),expected);
 assert.equal(catalog.folderName,'Cost Estimation — Working Google Sheets');
 const readable=[
@@ -17,7 +17,8 @@ const readable=[
  'Construction Costing — Reusable Workbook Template',
  'Krishna Kumar Gupta — Project Payment Register',
  'Fabin Gurung — Payments to Projects — Working v0.7',
- 'Vendor Bills — Working Register — LIVE'
+ 'Vendor Bills — Working Register — LIVE',
+ '03 — Bill of Contractors — Working Register — LIVE'
 ];
 assert.deepEqual(catalog.records.map(r=>r.title),readable,'Human-readable Google Drive titles need to stay aligned with source custody');
 assert(read('source-sheets.html').includes('id="websiteSheetEntryGuide"'),'Missing human workbook-entry instructions');
@@ -44,7 +45,7 @@ assert(page.includes('not</strong> proof')||page.includes('does not configure au
 assert(read('governance.html').includes('source-sheets.html'));
 assert(read('index.html').includes('source-sheets.html'));
 assert.equal(catalog.records.filter(r=>r.fetchContract.mode.startsWith('AUTHENTICATED')).length,4);
-assert.equal(catalog.records.filter(r=>r.fetchContract.mode.startsWith('OPTIONAL_')).length,1);
+assert.equal(catalog.records.filter(r=>r.fetchContract.mode.startsWith('OPTIONAL_')).length,2);
 assert.equal(catalog.records.filter(r=>['REFERENCE_ONLY','TEMPLATE_ONLY_NO_FETCH'].includes(r.fetchContract.mode)).length,2);
 assert(!JSON.stringify(catalog).includes('1eLxWq8eKgod6i98uxrRqF-xJA85HLScWBPNj0ztUgz4'),'Do not expose private Vendor Bills Sheet ID');
-console.log('CONNECTED WEBSITE SHEETS PASS: one governed source folder, 7 roles (4 authenticated + 1 optional/manual + 2 references), no private Sheet IDs, 71 registered pages; Drive membership provider-verified.');
+console.log('CONNECTED WEBSITE SHEETS PASS: one governed source folder, 8 roles (4 authenticated + 2 optional/manual + 2 references), no private Sheet IDs, 71 registered pages; Drive membership provider-verified.');

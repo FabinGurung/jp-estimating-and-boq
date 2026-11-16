@@ -16,13 +16,13 @@
     .then(response=>{if(!response.ok)throw new Error('Source map unavailable');return response.json()})
     .then(data=>{
       if(data.schema!=='jp.website.connected-source-sheets.v1'||
-         !Array.isArray(data.records)||data.records.length!==7||
+         !Array.isArray(data.records)||data.records.length!==8||
          data.operatorPolicy?.mode!=='MANUAL_FIRST_NO_CRON')throw new Error('Source map contract mismatch');
       const feeds=data.records.filter(r=>r.fetchContract?.mode?.startsWith('AUTHENTICATED'));
       const optional=data.records.filter(r=>r.fetchContract?.mode?.startsWith('OPTIONAL_'));
       const references=data.records.filter(r=>r.fetchContract?.mode==='REFERENCE_ONLY'||r.fetchContract?.mode==='TEMPLATE_ONLY_NO_FETCH');
-      if(feeds.length!==4||optional.length!==1||references.length!==2)throw new Error('Unexpected source role counts');
-      count.textContent='4 previously authenticated paths · 1 optional/manual Vendor Bills path (not yet live-verified) · 2 reference/template Sheets · no scheduled interval · catalogue '+data.version;
+      if(feeds.length!==4||optional.length!==2||references.length!==2)throw new Error('Unexpected source role counts');
+      count.textContent='4 previously authenticated paths · 2 optional manual snapshot paths (Vendor Bills and Contractor Bills, neither live-verified) · 2 reference/template Sheets · no scheduled interval · catalogue '+data.version;
       root.replaceChildren();
       for(const r of data.records){
         const fc=r.fetchContract;
