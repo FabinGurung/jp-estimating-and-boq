@@ -1,0 +1,14 @@
+{
+  "schema": "jp.contractor-bills-status.v1",
+  "sourceMode": "VERIFIED_SNAPSHOT",
+  "revision": "V000002",
+  "normalizedDataRevision": "V000001",
+  "sourceTabs": 6,
+  "sourceRows": 80,
+  "claimRows": 2,
+  "workRows": 33,
+  "historicalRows": 34,
+  "comparisonRows": 5,
+  "reviewFlags": 16,
+  "approvedClaims": 0
+}
