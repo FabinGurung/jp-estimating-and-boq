@@ -11,6 +11,7 @@
   <script src="memory-posters.js" defer></script>
   <script src="memory-source-register.js" defer></script>
   <script src="vendor-bills-status.js" defer></script>
+  <script src="contractor-bills-status.js" defer></script>
 </head>
 <body>
 <main class="poster-page" id="main">
@@ -27,16 +28,16 @@
   <section class="jp-source-board" id="google-sheets-fetched" aria-labelledby="source-fetch-title">
     <div class="jp-source-board-heading">
       <div>
-        <p class="poster-kicker">CURRENT SOURCE REGISTER / 14 NOVEMBER 2026</p>
+        <p class="poster-kicker">CURRENT SOURCE REGISTER / 16 NOVEMBER 2026</p>
         <h2 id="source-fetch-title">Which Google Sheets feed Estimation?</h2>
-        <p>Seven working/reference Sheets are registered: four established authenticated import paths, one optional manual Vendor Bills read path that is <strong>not yet live-authenticated</strong>, and two reference/template books. The source register names each owner, read tab, importer and output. A verified published snapshot is not proof of a fresh authenticated Google Sheets fetch.</p>
+        <p>Eight working/reference Sheets are registered: four established authenticated import paths, two optional manual-only aggregate readers (Vendor Bills and Contractor Bills), <strong>neither yet live-authenticated</strong>, and two reference/template books. The source register names each owner, read tab, importer and output. A verified published snapshot is not proof of a fresh authenticated Google Sheets fetch.</p>
       </div>
-      <div class="jp-source-count" aria-label="Current source role counts"><strong>4 <small>VERIFIED PATHS</small></strong><strong>1 <small>OPTIONAL MANUAL</small></strong><strong>2 <small>REFERENCES</small></strong></div>
+      <div class="jp-source-count" aria-label="Current source role counts"><strong>4 <small>VERIFIED PATHS</small></strong><strong>2 <small>OPTIONAL MANUAL</small></strong><strong>2 <small>REFERENCES</small></strong></div>
     </div>
     <p class="jp-source-mode"><strong>MANUAL-FIRST MODE:</strong> Edit original Google Sheets by hand, or explicitly prompt an operator to prepare a controlled revision. Refresh using GitHub Actions <em>Run workflow</em> or a user-authorized website commit. <strong>No cron / unattended interval.</strong> No automated data-entry template or step-test system has been approved yet.</p>
-    <p class="jp-source-data-status" id="estimationSourceCount" role="status">Loading the seven-Sheet source inventory…</p>
+    <p class="jp-source-data-status" id="estimationSourceCount" role="status">Loading the eight-Sheet source inventory…</p>
     <div class="jp-source-grid" id="estimationSourceCards" aria-live="polite"><p>Reading source roles and configured import paths…</p></div>
-    <noscript><p>Source names: Amrit Rawat indicative rates; Amrit Rawat measurements/BOQ; Krishna Kumar Gupta project payments; Fabin Gurung payments; Vendor Bills — Working Register — LIVE (verified snapshot, optional manual read); Construction Rate and Cost References (reference); Construction Costing Reusable Workbook Template (template). See the <a href="source-sheets.html">existing source directory</a> for roles.</p></noscript>
+    <noscript><p>Source names: Amrit Rawat indicative rates; Amrit Rawat measurements/BOQ; Krishna Kumar Gupta project payments; Fabin Gurung payments; Vendor Bills — Working Register — LIVE (verified snapshot, optional manual read); Bill of Contractors — Working Register — LIVE (verified snapshot, optional manual read); Construction Rate and Cost References (reference); Construction Costing Reusable Workbook Template (template). See the <a href="source-sheets.html">existing source directory</a> for roles.</p></noscript>
     <div class="jp-source-howto">
       <h3>Manual update procedure — what to ask next time</h3>
       <ol>
@@ -76,6 +77,35 @@
         <h3>Manual refresh</h3>
         <p>Refreshes are manual only. V000004 currently means a <strong>verified aggregate snapshot</strong>, not an authenticated import. <strong>Manual source read</strong> will only appear after the separate read-only authenticated GitHub Actions step succeeds with authorized private Google Sheet access.</p>
         <a href="https://github.com/FabinGurung/jp-estimating-and-boq/blob/research/open-estimation-engine-v0.1/docs/source-intake/VENDOR_BILLS_REVIEW_V000004.md">Read the V000004 human-first QA and source-contract checkpoint →</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="memory-snapshot" id="contractor-bills-intake" aria-labelledby="contractor-bills-intake-title">
+    <div class="memory-snapshot-heading">
+      <div>
+        <p class="poster-kicker">COST ESTIMATION / CONTRACTOR WORK CLAIMS</p>
+        <h2 id="contractor-bills-intake-title">Contractor Bills &amp; Running-Account Evidence</h2>
+        <p class="memory-snapshot-lead"><strong>V000002 contractor QA — 16 November 2026.</strong> The existing permanent native working Google Sheet was renamed and moved into the Cost Estimation source folder without changing its ID. Six original source tabs and all original formulas are retained; ten new human/normalized views show two claim summaries, <strong>33 primary work lines</strong>, 34 historical non-additive lines, five source comparisons and 16 OPEN review issues. The primary 33-line claim and source subtotal agree arithmetically; <strong>no claim is certified, and no payment is proven.</strong> Published figures below are a verified aggregate snapshot, not an authenticated live Contractor Bills read.</p>
+      </div>
+    </div>
+    <div id="contractor-bills-status">
+      <p data-contractor-status aria-live="polite">Loading Contractor Bills status…</p>
+      <dl class="memory-stat-grid" aria-label="Contractor claim and evidence counts"></dl>
+    </div>
+    <div class="memory-three-column">
+      <article class="memory-mini memory-done">
+        <h3>One controlled working Sheet</h3>
+        <p>The original six source tabs, two original control tabs and ten normalized review tabs coexist in the same permanent Google Sheet. V000002 full native PRE/POST copies and a detailed private QA Google Doc preserve the source history; old duplicate views are indexed as evidence and never summed again.</p>
+      </article>
+      <article class="memory-mini memory-hold">
+        <h3>Hold: certificate and payment evidence</h3>
+        <p>The 16 review issues remain OPEN. Rates, measured quantities, work dates, project/contractor identities and signed running bills still need manual verification. A zero-valued Hari Baral source formula points to Rate rather than Amount and is flagged but preserved, not silently corrected.</p>
+      </article>
+      <article class="memory-mini memory-next">
+        <h3>Manual read-only projection</h3>
+        <p>GitHub can publish a <strong>Verified snapshot · V000002</strong> without accessing the private Sheet. A separate authenticated source read is optional on explicit manual GitHub Actions dispatch and requires the private `JP_CONTRACTOR_BILLS_SHEET_ID` setting and Google read access. No cron or automatic approval.</p>
+        <a href="docs/source-intake/CONTRACTOR_BILLS_REVIEW_V000002.md">Read the public-safe V000002 source-contract and QA checkpoint →</a>
       </article>
     </div>
   </section>
