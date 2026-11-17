@@ -41,10 +41,12 @@ assert(css.includes('grid-template-columns')&&css.includes('@media(max-width:820
 assert(!html.includes('FN-C03'),'Field capture codes must not appear as Finance source selectors');
 assert(html.includes('Only the previously approved Krishna Kumar Gupta source link'),'Privacy boundary missing');
 assert(html.includes('id="financeSheetIframe"'),'Missing optional Sheet preview');
-const approved='1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE';
-assert(html.includes(approved),'Approved register link missing from Finance page');
-assert(read('finance-register-header-v1.0.js').includes('1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE'),'Native source ID missing');
+assert(html.includes('href="source-sheets.html"'),'Canonical source directory link missing from Finance');
+assert(read('finance-register-header-v1.0.js').includes("const SOURCE_URL = 'source-sheets.html'"),'Native source navigation must use the safe directory');
+for (const id of ['1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE','1-DhklD5WyvNtsYNpEgvisIOlzNA6iSX_U3Bqci4FZ7I']){
+  assert(!html.includes(id),'Do not expose private retired or current source ID');
+  assert(!read('finance-register-header-v1.0.js').includes(id),'Native header must not expose private IDs');
+}
 const publicLinks=(script+'\n'+html).match(/https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]{20,}/g)||[];
-assert(publicLinks.length>=1,'Expected approved source link');
-for(const link of publicLinks)assert(link.endsWith(approved),'Only the approved payment register may have a stored workbook URL');
+assert.equal(publicLinks.length,0,'No private payment register URLs in public Finance page');
 console.log('FINANCE PANELS PASS: payment-ledger-only source options, field/worker custody handoff, protected previews and no restricted source URLs');
