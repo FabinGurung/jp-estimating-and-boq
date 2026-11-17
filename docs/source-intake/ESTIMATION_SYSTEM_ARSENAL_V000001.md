@@ -8,7 +8,7 @@
 
 | Layer / resource | Current role | Authority / constraint |
 | --- | --- | --- |
-| Google Drive | Human original source and full native workbook PRE/POST + source-specific audit Docs | Every editable financial source retains its original Google Sheet ID. Old Excel, signed receipts, drawings and source invoices are preserved privately. |
+| Google Drive | Human original source and full native workbook PRE/POST + source-specific audit Docs | Each finance source has one authoritative LIVE Google Sheet ID. When the user authorizes a clean new LIVE workbook (KKG V1.1), the retired previous LIVE ID is archived with complete A7 PRE/POST rather than being reused as a second editable source. Source original Excel, signed receipts, drawings and invoices are preserved privately. |
 | ChatGPT connected Google Drive/Sheets | When the account owner authorizes it, can read cells, inspect formulas, edit the SAME live ID, move/rename Drive files and create controlled A7 PRE/POST | Interactive user-scoped access is NOT GitHub Actions' identity. Never infer the GitHub runner can read a Sheet because the chat editor can. |
 | Google Cloud `just-a-project-5007` | Existing keyless GitHub Workload Identity Federation, service account `jp-pages-publisher` | Short-lived authorized Google scopes; Viewer on each private original source Sheet. Vendor Bills and Contractor Bills Viewer grants are now configured. No new account/long-lived JSON key is required. |
 | GitHub Estimation repository | Versioned import logic, audit and source-map schemas, CI and static site | Pull request + CI gate; PRE/POST Git snapshot branches used where appropriate. No raw private finance rows in public source. |
@@ -47,3 +47,8 @@ The service account only needs **Viewer** on source files. The public website do
 Google Drive is human source authority, GitHub stores repeatable logic and public-safe snapshots, Actions performs permissioned read/QA/deployment, Pages is the viewer and A7 is the cross-repository index. Vendor bills, contractor work claims and recorded project payment events are three different financial grains; don't add them blindly or infer cash settlement from a bill. The original company/project context remains distinct for Krishna and Fabin.
 
 **Status is earned by the latest verified workflow result, not the existence of a configured workflow alone.** This is a design guardrail, not a promise of unattended refresh.
+
+
+## 17 November 2026 — KKG V1.1 source ID migration and mini-table update
+
+Krishna Kumar Gupta / Rohini Bishal Paija intentionally moved its LIVE authority from the archived 20-tab V0.5 to a newly created three-tab native V1.0, subsequently edited **on that same new V1 ID** to V1.1 / control V000002. The current human source uses 27 vendor mini-tables with formula-linked Amount, Discount, QR, and a project/vendor-only Total. Its complete V000002 PRE/POST, original source audit and private IDs remain in the KKG Drive history and original QA Doc, not on Pages. The existing Google WIF publisher identity has Viewer; the read-only importer uses exact-title Drive discovery, not a hardcoded retired file ID. A successful Sheets migration or public QA does not prove a current Pages authenticated read: verify the explicit one-time KKG Actions run before labeling the public JSON current. No cron introduced. See `KKG_V1_1_VENDOR_MINI_TABLES_20261117.md`.
