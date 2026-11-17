@@ -1,40 +1,40 @@
 {
   "schema": "jp.finance.context.v1",
-  "version": "0.7.0",
+  "version": "1.1.0",
   "scope": "REB / 14_bishal_paija / Krishna Kumar Gupta payments",
-  "read_first": "Google Sheet tab 00_SITE_CONTEXT",
+  "read_first": "00_SYSTEM_MEMORY in canonical private KKG V1.1 workbook",
   "refresh_prompt": "Refresh the JP finance website from the current Google Sheet.",
   "source": {
-    "workbook_url": "https://docs.google.com/spreadsheets/d/1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE/edit",
-    "register_tab": "14_bishal_paija",
-    "vendor_summary_tab": "KKG_VENDOR_SUMMARY_AUTO",
-    "site_context_tab": "00_SITE_CONTEXT",
+    "workbook_url": "source-sheets.html",
+    "register_tab": "Bishal Paija",
+    "vendor_summary_tab": "Bishal Paija",
+    "site_context_tab": "00_SYSTEM_MEMORY",
     "payment_section_pattern": [
-      "vendor name",
-      "Date | Amount | Paid Time | QR | Discount",
-      "payment entries",
-      "Total"
+      "Vendor ID | Vendor / Purpose | Amount | Discount | QR",
+      "VENDOR NN · Name; Time | Date | Amount | Discount | QR | Entry ID | Legacy row | Review status | Evidence",
+      "individual SOURCE_RECORDED_ONLY payment rows; 3 blank manual-entry rows",
+      "TOTAL formula footer, linked to the summary"
     ],
-    "read_scope": "All active vendor sections; expand beyond historical A35:H190 when new entries appear"
+    "read_scope": "Current V1.1 27 vendor sections under Bishal Paija!A32:I; extend as inserted rows increase"
   },
   "publication": {
     "mode": "actions_deployment_refresh",
-    "repo": "FabinGurung/JP_Cost_Estimation",
-    "site": "https://fabingurung.github.io/JP_Cost_Estimation/finance.html",
+    "repo": "FabinGurung/jp-estimating-and-boq",
+    "site": "https://fabingurung.github.io/jp-estimating-and-boq/finance-dashboard.html",
     "publication_branch": "research/open-estimation-engine-v0.1",
     "workflow_owner_branch": "main",
-    "workflow_path": ".github/workflows/deploy-estimation-product.yml",
+    "workflow_path": ".github/workflows/deploy-research-pages.yml",
     "public_snapshot": "finance-public-snapshot.json",
     "website_page": "finance-dashboard.html",
     "review_before_publication": false,
-    "credential_source": "GitHub Actions repository variables for WIF or dedicated Actions secret; no credentials in repo",
-    "fallback": "Previous date-stamped committed JSON is clearly labeled historical when Google credentials are missing"
+    "credential_source": "Existing Google WIF and exact LIVE-title read-only Drive metadata discovery; never commit private spreadsheet ID",
+    "fallback": "Stored JSON may be historical; a current source read requires authenticated GitHub Actions run verification"
   },
   "rules": {
     "company_scope": "REB only; never merge another company's payments",
     "preserve_original": true,
-    "no_trigger_install": false,
-    "no_live_sync_claim": false,
+    "no_trigger_install": true,
+    "no_live_sync_claim": true,
     "do_not_modify_other_rate_or_pdf_workflows": true,
     "unique_internal_payment_ids_required": true,
     "do_not_publish_internal_payment_ids": true,
@@ -104,5 +104,5 @@
       "type": "provenance"
     }
   ],
-  "next_refresh_output": "Validated authenticated Google Sheets build to transient Pages JSON; do not write to source Sheet or claim live fetch on unavailable credentials."
+  "next_refresh_output": "Run manual authenticated Google WIF LIVE V1.1 source-read and validate all vendor footers/summary and Total, then update public snapshot. No schedule or write to Google Sheets."
 }
