@@ -25,12 +25,64 @@
     <div class="poster-hero-mark" aria-hidden="true"><span>READ</span><span>CONNECT</span><span>REMEMBER</span></div>
   </section>
 
+  <section class="memory-snapshot" id="estimation-system-arsenal" aria-labelledby="arsenal-title">
+    <div class="memory-snapshot-heading">
+      <div>
+        <p class="poster-kicker">A7/A9 · ESTIMATION / SOURCE-TO-PUBLICATION TOOL ARSENAL · 17 NOVEMBER 2026</p>
+        <h2 id="arsenal-title">What we already have, what each tool can do, and where the data belongs.</h2>
+        <p class="memory-snapshot-lead">These systems are <strong>already deployed and working</strong>; no new service account, standalone database, duplicate editable register or scheduled refresh is required to read an authorized Google Sheet. The original Google Sheets remain authoritative and any source change follows numbered A7 full PRE → same LIVE ID → QA → POST.</p>
+      </div>
+    </div>
+    <div class="memory-three-column">
+      <article class="memory-mini memory-done">
+        <h3>1. Google Drive + Google Sheets</h3>
+        <p>Eight governed working/reference Sheets: Krishna Kumar Gupta V000005, Fabin Payments, Vendor Bills V000004, Contractor Bills V000002, and Amrit/rates/reference books. Original invoices, measurements, project allocations and the full private audit Docs live in Drive. The same permanent LIVE file IDs stay editable; archive copies are read-only history.</p>
+        <a href="source-sheets.html#websiteSheetEntryGuide">Open the owner-controlled source directory →</a>
+      </article>
+      <article class="memory-mini memory-done">
+        <h3>2. ChatGPT + connected Drive editor</h3>
+        <p>With the user's permission the connected Google Drive/Sheets tools can directly read cells, inspect formulas, reorganize tabs, move files, maintain versioned PRE/POST copies and append audit Docs. This interactive access is <strong>different from GitHub Actions' cloud identity</strong>; a chat being able to read a Sheet does not itself give a GitHub runner permission.</p>
+      </article>
+      <article class="memory-mini memory-done">
+        <h3>3. Existing Google Cloud Workload Identity</h3>
+        <p>Google Cloud project <code>just-a-project-5007</code> already provides keyless GitHub federation to <code>jp-pages-publisher</code>. The runner obtains a short-lived scoped Google token and must have <strong>Viewer</strong> permission on each private source workbook. Vendor and Contractor LIVE readers now reuse these grants; no new account or source-ID secret is mandatory when an exact unique title is discoverable.</p>
+      </article>
+      <article class="memory-mini memory-done">
+        <h3>4. GitHub — versioned source and QA</h3>
+        <p><code>FabinGurung/jp-estimating-and-boq</code> owns finance source adapters, public-safe source map <code>data/connected-website-sheets.v1.json</code>, per-source aggregate contracts, application pages and CI tests. The publishing branch is <code>research/open-estimation-engine-v0.1</code>. A7 is a <strong>navigation and governance pointer</strong>, not a duplicate financial ledger.</p>
+        <a href="https://github.com/FabinGurung/jp-estimating-and-boq">Inspect owning Estimation repository →</a>
+      </article>
+      <article class="memory-mini memory-done">
+        <h3>5. Python source readers and reconciliation</h3>
+        <p><code>build_finance_from_google_sheets.py</code> reads Krishna; <code>build_fabin_finance_from_google_sheets.py</code> reads Fabin; <code>build_vendor_bills_public.py</code> and <code>build_contractor_bills_public.py</code> read aggregate-only Vendor/Contractor records. Amrit's separate measurement/rate readers remain in place. Every importer validates its own grain and source constraints before publishing a safe summary.</p>
+        <a href="docs/source-intake/ESTIMATION_SYSTEM_ARSENAL_V000001.md">Read full tool and importer inventory →</a>
+      </article>
+      <article class="memory-mini memory-next">
+        <h3>6. GitHub Actions → static GitHub Pages</h3>
+        <p><code>deploy-research-pages.yml</code> already authenticates to Google, reads existing finance/Amrit sources, tests the generated output and publishes Pages. Vendor and Contractor reads are explicitly opt-in via workflow dispatch or a user-approved marked release, not by a timer. The deployed <code>sourceMode</code> reports <strong>MANUAL_AUTHENTICATED_READ</strong> only after the real source passes validation; ordinary commits retain the checked <strong>VERIFIED_SNAPSHOT</strong>.</p>
+        <a href="https://github.com/FabinGurung/jp-estimating-and-boq/actions/workflows/deploy-research-pages.yml">Open the manual GitHub Actions workflow →</a>
+      </article>
+    </div>
+    <p class="memory-snapshot-lead"><strong>Separation:</strong> Google Sheets = human authority; A7 PRE/POST = reversible audit history; connected ChatGPT = authorized interactive editor; Google WIF = private read permission for unattended runners; GitHub Actions = explicit read/QA/publication; GitHub Pages = versioned static presentation; Field &amp; Desk Resource Library = scanned evidence/document custody. No payment, vendor bill or contractor claim becomes commercially approved merely by passing an arithmetic check.</p>
+  </section>
+
+  <section class="memory-snapshot" id="krishna-payments-v000005" aria-labelledby="krishna-payments-title">
+    <div class="memory-snapshot-heading">
+      <div>
+        <p class="poster-kicker">ROHINI ENGINEERING / KRISHNA KUMAR GUPTA · SOURCE-CONTROL V000005</p>
+        <h2 id="krishna-payments-title">One Bishal Paija payment source — Fabin-style human presentation.</h2>
+        <p class="memory-snapshot-lead">The existing registered Krishna Kumar Gupta LIVE workbook, not a new source ID, now has <code>Total</code>, <code>Bishal Paija</code> (27 linked five-column vendor mini-tables) and a consolidated <code>00_SYSTEM_MEMORY</code> in the original Google Sheet. All <strong>74 source payment entries, 27 vendors, native original formulas and Entry IDs</strong> remain unchanged. The one-project NPR amount, QR and discounts reconcile independently, but remain SOURCE_RECORDED_NOT_CERTIFIED. Full V000005 PRE/POST and the QA Doc stay private in Cost Estimation Drive.</p>
+        <a href="docs/source-intake/KKG_V000005_FABIN_TEMPLATE_ALIGNMENT.md">Read the governed V000005 structure and approval holds →</a>
+      </div>
+    </div>
+  </section>
+
   <section class="jp-source-board" id="google-sheets-fetched" aria-labelledby="source-fetch-title">
     <div class="jp-source-board-heading">
       <div>
-        <p class="poster-kicker">CURRENT SOURCE REGISTER / 16 NOVEMBER 2026</p>
+        <p class="poster-kicker">CURRENT SOURCE REGISTER / 17 NOVEMBER 2026</p>
         <h2 id="source-fetch-title">Which Google Sheets feed Estimation?</h2>
-        <p>Eight working/reference Sheets are registered: four established authenticated import paths, two optional manual-only aggregate readers (Vendor Bills and Contractor Bills), <strong>neither yet live-authenticated</strong>, and two reference/template books. The source register names each owner, read tab, importer and output. A verified published snapshot is not proof of a fresh authenticated Google Sheets fetch.</p>
+        <p>Eight working/reference Sheets are registered: four established authenticated import paths, two deliberately manual-only readers (Vendor Bills and Contractor Bills), and two reference/template books. Contractor Bills has passed an authenticated read; Vendor Bills uses the same existing Google publishing identity. Each optional source card checks its current <strong>deployed status JSON</strong> so a verified snapshot is never mistaken for an authenticated read.</p>
       </div>
       <div class="jp-source-count" aria-label="Current source role counts"><strong>4 <small>VERIFIED PATHS</small></strong><strong>2 <small>OPTIONAL MANUAL</small></strong><strong>2 <small>REFERENCES</small></strong></div>
     </div>
@@ -57,7 +109,7 @@
       <div>
         <p class="poster-kicker">COST ESTIMATION / FINANCE</p>
         <h2 id="vendor-bills-intake-title">Vendor Bills &amp; Supplier Invoices</h2>
-        <p class="memory-snapshot-lead"><strong>V000004 human-first QA — 14 November 2026.</strong> The permanent LIVE working register is in the Cost Estimation working Sheets folder. Its 46 tabs now start with the guide and three original projects, followed by 30 original supplier tabs; two ambiguous source tabs are retained, and eight normalized/review tables plus controls are at the back. All 35 original source tabs and 1,895 indexed rows are traceable. <strong>509 flags remain OPEN; no bills approved.</strong> The displayed aggregate is a verified snapshot, not a live authenticated Vendor Bills fetch.</p>
+        <p class="memory-snapshot-lead"><strong>V000004 human-first QA — 14 November 2026.</strong> The permanent LIVE working register is in the Cost Estimation working Sheets folder. Its 46 tabs now start with the guide and three original projects, followed by 30 original supplier tabs; two ambiguous source tabs are retained, and eight normalized/review tables plus controls are at the back. All 35 original source tabs and 1,895 indexed rows are traceable. <strong>509 flags remain OPEN; no bills approved.</strong> The published status directly below distinguishes <strong>Verified snapshot</strong> from <strong>Manual source read</strong>; only a verified authenticated Google Sheets read may claim the latter.</p>
       </div>
     </div>
     <div id="vendor-bills-status">
@@ -86,7 +138,7 @@
       <div>
         <p class="poster-kicker">COST ESTIMATION / CONTRACTOR WORK CLAIMS</p>
         <h2 id="contractor-bills-intake-title">Contractor Bills &amp; Running-Account Evidence</h2>
-        <p class="memory-snapshot-lead"><strong>V000002 contractor QA — 16 November 2026.</strong> The existing permanent native working Google Sheet was renamed and moved into the Cost Estimation source folder without changing its ID. Six original source tabs and all original formulas are retained; ten new human/normalized views show two claim summaries, <strong>33 primary work lines</strong>, 34 historical non-additive lines, five source comparisons and 16 OPEN review issues. The primary 33-line claim and source subtotal agree arithmetically; <strong>no claim is certified, and no payment is proven.</strong> Published figures below are a verified aggregate snapshot, not an authenticated live Contractor Bills read.</p>
+        <p class="memory-snapshot-lead"><strong>V000002 contractor QA — 16 November 2026.</strong> The existing permanent native working Google Sheet was renamed and moved into the Cost Estimation source folder without changing its ID. Six original source tabs and all original formulas are retained; ten new human/normalized views show two claim summaries, <strong>33 primary work lines</strong>, 34 historical non-additive lines, five source comparisons and 16 OPEN review issues. The primary 33-line claim and source subtotal agree arithmetically; <strong>no claim is certified, and no payment is proven.</strong> The published status below displays <strong>Manual source read</strong> only after a successful authenticated workflow; normal code releases retain the checked aggregate snapshot fallback.</p>
       </div>
     </div>
     <div id="contractor-bills-status">
