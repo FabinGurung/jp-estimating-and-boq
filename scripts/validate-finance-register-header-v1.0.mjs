@@ -1,86 +1,68 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const root = new URL('../', import.meta.url);
-const read = path => readFileSync(new URL(path, root), 'utf8');
+const read = path => readFileSync(new URL('../'+path, import.meta.url), 'utf8');
 const html = read('finance.html');
 const js = read('finance-register-header-v1.0.js');
 const css = read('finance-register-header-v1.0.css');
-const panelScript = read('finance-source-panels-v0.9.js');
+const panel = read('finance-source-panels-v0.9.js');
 const manifest = JSON.parse(read('site-page-registry.v0.8.json'));
 const snapshot = JSON.parse(read('finance-public-snapshot.json'));
-const sheetMeta = JSON.parse(read('finance-sheet-meta-v1.1.json'));
-const sourceId = '1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE';
+const metadata = JSON.parse(read('finance-sheet-meta-v1.1.json'));
 const start = html.indexOf('<header class="topbar jp-fn-s01-topbar">');
-const end = html.indexOf('</header>', start);
-assert(start >= 0 && end > start, 'Finance topbar header not found');
-const header = html.slice(start, end);
-assert(header.includes('id="fnS01Native"'), 'Native register must be inside Finance header');
-assert(header.includes(sourceId), 'Google Sheet ID must be visible in header');
-assert(!header.includes('<iframe'), 'No external Sheet frame in native header');
-assert(header.includes('<details open>'), 'Native register should be visible by default');
-assert(header.includes('id="fnS01TablePanel"'), 'Native table container missing');
-assert(header.includes('id="fnS01Search"'), 'Search control missing');
-assert(header.includes('id="fnS01Vendor"'), 'Vendor filter missing');
-assert(header.includes('id="fnS01Calendar"'), 'AD/BS filter missing');
-assert(header.includes('id="fnS01Limit"'), 'Row count control missing');
-assert(header.includes('id="fnS01Previous"') && header.includes('id="fnS01Next"'), 'Pagination missing');
-const visible = ['14_bishal_paija', 'KKG_VENDOR_SUMMARY_AUTO', '00_ENTRY_GUIDE', '00_SITE_CONTEXT', '_SYSTEM_ENUM'];
-for (const title of visible) assert(header.includes('>' + title + '</button>'), 'Visible source tab missing: ' + title);
-assert((header.match(/role="tab"/g) || []).length === 5, 'Expected five public-safe source tabs');
-assert.equal(sheetMeta.schema, 'jp.finance.source-tab-metadata.v1', 'Source metadata schema mismatch');
-assert.equal(sheetMeta.spreadsheetId, sourceId, 'Source metadata workbook ID mismatch');
-assert.equal(sheetMeta.sourceCode, 'FN-S01', 'Wrong source code');
-assert.equal(sheetMeta.sourceTabCount, 9, 'Unexpected workbook tab count');
-assert.equal(sheetMeta.visibleTabCount, 5, 'Unexpected public view count');
-assert.equal(sheetMeta.excludedHiddenTabCount, 4, 'Restricted source tabs must remain excluded');
-assert.equal(sheetMeta.excludedHiddenTabNamesPublished, false, 'Restricted source tabs must not be listed');
-assert.equal(sheetMeta.tabs.length, 5, 'Exactly five public-safe tab IDs required');
-const seenTabIds = new Set();
-for (const tab of sheetMeta.tabs) {
-  assert(Number.isSafeInteger(tab.sheetId) && tab.sheetId >= 0, 'Invalid source worksheet ID');
-  assert(!seenTabIds.has(tab.sheetId), 'Duplicate worksheet ID');
-  seenTabIds.add(tab.sheetId);
-  assert(header.includes('data-fn-s01-tab="' + tab.viewId + '"'), 'Tab not visible in header: ' + tab.viewId);
-  assert(header.includes('>' + tab.title + '</button>'), 'Tab title not in header: ' + tab.title);
-  assert(js.includes("id: '" + tab.viewId + "', title: '" + tab.title + "', sheetId: " + tab.sheetId), 'JS worksheet ID mismatch');
+const end = html.indexOf('</header>',start);
+assert(start >= 0 && end > start,'Finance header not found');
+const header = html.slice(start,end);
+for(const required of ['fnS01Native','fnS01TablePanel','fnS01Search','fnS01Vendor','fnS01Calendar',
+    'fnS01Limit','fnS01Previous','fnS01Next','fnS01TabIdentity','fnS01CopyTabId','fnS01ActiveSheetId']){
+    assert(header.includes(required),'Missing native Finance UI control '+required);
 }
-assert(header.includes('id="fnS01TabIdentity"') && header.includes('id="fnS01ActiveSheetId"'), 'Worksheet identity must remain inside Finance header');
-assert(header.includes('id="fnS01CopyTabId"'), 'Worksheet ID copy action missing');
-assert(js.includes("navigator.clipboard.writeText(String(view.sheetId))"), 'Worksheet ID clipboard handler missing');
-assert(css.includes('.jp-fn-s01-tab-identity'), 'Worksheet identity CSS missing');
-for (const excluded of ['Archive_14_bishal_paija', '_TABLE_INDEX', '_AUDIT_LOG', '_AUTOMATION_SETUP']) {
-  assert(!JSON.stringify(sheetMeta).includes(excluded), 'Restricted tab metadata published');
+assert(header.includes('<details open>')&&!header.includes('<iframe'));
+assert((header.match(/role="tab"/g)||[]).length===3,'Exactly 3 current public-safe source tabs');
+assert.equal(metadata.schema,'jp.finance.source-tab-metadata.v1');
+assert.equal(metadata.sourceCode,'FN-S01');
+assert.equal(metadata.sourceTitle,'Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1');
+assert.equal(metadata.inventoryStatus,'CURRENT_CANONICAL_THREE_TAB_PUBLIC_SAFE_SUBSET');
+assert.equal(metadata.spreadsheetId,'PRIVATE_IN_GOOGLE_DRIVE');
+assert.equal(metadata.sourceTabCount,3);
+assert.equal(metadata.visibleTabCount,3);
+assert.equal(metadata.excludedHiddenTabCount,0);
+assert.equal(metadata.lastObservedLiveTabCount,3);
+const expected=[['vendors','Total',1177922624],['payments','Bishal Paija',846338599],
+                ['guide','00_SYSTEM_MEMORY',256073749]];
+assert.deepEqual(metadata.tabs.map(t=>[t.viewId,t.title,t.sheetId]),expected);
+for(const [view,title,gid] of expected){
+  assert(header.includes('data-fn-s01-tab="'+view+'"'));
+  assert(header.includes('>'+title+'</button>'));
+  assert(js.includes("id: '"+view+"', title: '"+title+"', sheetId: "+gid));
 }
-
-assert(header.includes('live workbook tab inventory has since changed'), 'Historical-vs-live tab inventory disclaimer missing');
-assert.equal(sheetMeta.inventoryStatus,'HISTORICAL_APPROVED_SUBSET_NOT_CURRENT_LIVE_TAB_INVENTORY','Missing live inventory drift hold');
-assert.equal(sheetMeta.lastObservedLiveTabCount,12,'Latest live workbook tab inventory not recorded');
-assert(header.includes('read-only') || header.includes('Read-only'), 'Source must be read-only');
-assert(html.includes('finance-register-header-v1.0.css') && html.includes('finance-register-header-v1.0.js'), 'Native header assets missing');
-assert(css.includes('overflow-x:auto') && css.includes('@media(max-width:760px)'), 'Tablet-friendly scrolling missing');
-assert(js.includes("fetch('finance-public-snapshot.json'"), 'Native register must reuse approved public snapshot');
-assert(js.includes('SOURCE_ID') && js.includes(sourceId), 'Native source identity missing');
-assert(js.includes('source_date') && js.includes('date_system') && js.includes('paid_time'), 'Source date fields missing');
-assert(js.includes('aria-selected') && js.includes('ArrowRight'), 'Keyboard-accessible tabs missing');
-assert(js.includes('replaceChildren(table)') && js.includes('textContent'), 'Expected safe native table rendering');
-assert(!js.includes('iframe') && !js.includes('/preview'), 'Native register must not load a Sheet frame');
-assert(panelScript.includes("if(source.id==='FN-S01')"), 'Legacy preview must route to native header');
-assert(panelScript.includes("native.scrollIntoView"), 'Legacy source selector must reveal native header');
-assert(!header.includes('data-finance-source="FN-S01"'), 'Old FN-S01 frame trigger remains');
-assert.equal(snapshot.source.workbook_url, 'https://docs.google.com/spreadsheets/d/' + sourceId + '/edit');
-assert.equal(snapshot.totals.vendor_count, snapshot.vendors.length);
-assert.equal(snapshot.totals.payment_count, snapshot.payments.length);
-for (const key of ['amount_npr', 'qr_npr', 'discount_npr']) {
-  const total = snapshot.payments.reduce((acc, row) => acc + (row[key] ?? 0), 0);
-  assert.equal(total, snapshot.totals[key], 'Source total mismatch: ' + key);
+assert(js.includes("fetch('finance-public-snapshot.json'"));
+assert(js.includes("navigator.clipboard.writeText(String(view.sheetId))"));
+assert(js.includes("source_date")&&js.includes("paid_time"));
+assert(js.includes("aria-selected")&&js.includes("ArrowRight"));
+assert(js.includes("replaceChildren(table)")&&js.includes("textContent"));
+assert(!js.includes('<iframe')&&!js.includes('/preview'));
+assert(panel.includes("if(source.id==='FN-S01')")&&panel.includes("native.scrollIntoView"));
+assert(!header.includes('data-finance-source="FN-S01"'));
+assert(header.includes('Read-only')||header.includes('read-only'));
+assert(css.includes('overflow-x:auto')&&css.includes('@media(max-width:760px)'));
+for(const file of [html,js,JSON.stringify(metadata),JSON.stringify(snapshot)]){
+  assert(!file.includes('1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE'),
+     'Retired private Sheet ID must not be exposed on public Finance pages');
+  assert(!file.includes('1-DhklD5WyvNtsYNpEgvisIOlzNA6iSX_U3Bqci4FZ7I'),
+     'New private LIVE ID must not be exposed');
 }
-for (const payment of snapshot.payments) {
-  assert(['AD', 'BS'].includes(payment.date_system), 'Calendar label missing');
-  for (const privateField of ['entry_id', 'created_at', 'updated_at']) {
-    assert(!Object.hasOwn(payment, privateField), 'Restricted payment field present');
-  }
+assert.equal(snapshot.source.workbook_url,'source-sheets.html');
+assert.equal(snapshot.totals.vendor_count,snapshot.vendors.length);
+assert.equal(snapshot.totals.payment_count,snapshot.payments.length);
+for(const key of ['amount_npr','qr_npr','discount_npr']){
+  assert.equal(snapshot.payments.reduce((v,x)=>v+(x[key]||0),0),snapshot.totals[key]);
+  assert.equal(snapshot.vendors.reduce((v,x)=>v+(x[key]||0),0),snapshot.totals[key]);
 }
-const finance = manifest.pages.find(page => page.id === 'FN-01');
-assert(finance.sections.some(section => section.id === 'FN-01.S06' && section.domId === 'fnS01Native'), 'Native header section not registered');
-assert(finance.keyDependencies.includes('finance-register-header-v1.0.js'), 'Native script dependency not registered');
-console.log('FN-S01 NATIVE HEADER PASS: five public-safe source views, all 74 payments, 27 vendors, native header display, restricted fields excluded');
+for(const row of snapshot.payments){
+  assert(['BS','AD'].includes(row.date_system));
+  for(const secret of ['entry_id','created_at','updated_at'])assert(!Object.hasOwn(row,secret));
+}
+const finance = manifest.pages.find(p=>p.id==='FN-01');
+assert(finance?.sections?.some(s=>s.id==='FN-01.S06'&&s.domId==='fnS01Native'));
+assert(finance?.keyDependencies?.includes('finance-register-header-v1.0.js'));
+console.log('FN-S01 V1.1 PASS: 3 current private native tabs represented as public-safe views, stable payment projection verified, zero private file IDs.');
