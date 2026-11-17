@@ -61,6 +61,47 @@ def derive(sheets):
     return validate(result)
 
 
+LIVE_TITLE = "Vendor Bills — Working Register — LIVE"
+
+
+def select_unique_source(payload):
+    """Fail closed unless exactly one shared original LIVE workbook is found."""
+    entries = payload.get("files", [])
+    if payload.get("nextPageToken") or len(entries) != 1:
+        raise ValueError("SOURCE_DISCOVERY_NONUNIQUE")
+    record = entries[0]
+    source_id = record.get("id", "")
+    if (record.get("name") != LIVE_TITLE
+            or record.get("mimeType") != "application/vnd.google-apps.spreadsheet"
+            or record.get("trashed") is True
+            or not re.fullmatch(r"[A-Za-z0-9_-]{20,}", source_id)):
+        raise ValueError("SOURCE_DISCOVERY_MISMATCH")
+    return source_id
+
+
+def discover_source_id():
+    """Reuse existing WIF publishing identity, without public source identifiers."""
+    import google.auth
+    from google.auth.transport.requests import AuthorizedSession
+
+    credentials, _ = google.auth.default(scopes=[
+        "https://www.googleapis.com/auth/drive.metadata.readonly",
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+    ])
+    name = LIVE_TITLE.replace("\\", "\\\\").replace("'", "\\'")
+    query = (f"name = '{name}' and mimeType = "
+             "'application/vnd.google-apps.spreadsheet' and trashed = false")
+    reply = AuthorizedSession(credentials).get(
+        "https://www.googleapis.com/drive/v3/files",
+        params={"q": query, "pageSize": 100,
+                "fields": "nextPageToken,files(id,name,mimeType,trashed)"},
+        timeout=30,
+    )
+    if not reply.ok:
+        raise RuntimeError("SOURCE_DISCOVERY_PERMISSION")
+    return select_unique_source(reply.json())
+
+
 def read_live(source_id):
     import google.auth
     from google.auth.transport.requests import AuthorizedSession
@@ -90,6 +131,18 @@ def self_test():
     snapshot = derive(fixture)
     if snapshot["billRows"] != 1 or "private" in json.dumps(snapshot).lower():
         raise ValueError("PRIVACY_TEST")
+    unique = {"files": [{"id": "Aa0Bc1De2Fg3Hi4Jk5Lm6No7Pq8Rs9Tu",
+                         "name": LIVE_TITLE, "mimeType": "application/vnd.google-apps.spreadsheet",
+                         "trashed": False}]}
+    assert select_unique_source(unique) == unique["files"][0]["id"]
+    for invalid_files in ({}, {"files": unique["files"] * 2},
+                          {"files": unique["files"], "nextPageToken": "other"},
+                          {"files": [dict(unique["files"][0], name="Wrong workbook")]}):
+        try:
+            select_unique_source(invalid_files)
+        except ValueError:
+            continue
+        raise ValueError("SOURCE_DISCOVERY_FAILCLOSED_TEST")
     for invalid in (dict(snapshot, private="secret"), dict(snapshot, billRows=True), dict(snapshot, sourceRows=0)):
         try:
             validate(invalid)
@@ -107,9 +160,12 @@ def main():
     if args.check:
         validate(json.loads(SNAPSHOT.read_text()))
     if args.output:
-        source_id = os.environ.get("JP_VENDOR_BILLS_SHEET_ID", "")
-        if not re.fullmatch(r"[A-Za-z0-9_-]{20,}", source_id):
-            raise ValueError("SOURCE_CONFIGURATION")
+        source_id = os.environ.get("JP_VENDOR_BILLS_SHEET_ID", "").strip()
+        if source_id:
+            if not re.fullmatch(r"[A-Za-z0-9_-]{20,}", source_id):
+                raise ValueError("SOURCE_CONFIGURATION")
+        else:
+            source_id = discover_source_id()
         data = derive(read_live(source_id))
         args.output.write_text(json.dumps(data, indent=2) + "\n")
 
