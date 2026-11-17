@@ -172,22 +172,36 @@ jobs:
                         + 'Basketball excluded and Hari reconciliation debt visible.\\n')
           PY
 
-      - name: Refresh Vendor Bills counts on a manual run
-        if: github.event_name == 'workflow_dispatch' && steps.google_connection.outputs.configured == 'true'
+      # This marked push is a user-authorized one-time source-read release.
+      # Ordinary pushes publish the checked snapshot; there is no scheduled refresh.
+      - name: Refuse requested Vendor Bills read without Google authentication
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_live_sheets == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[vendor-manual-read]')) && steps.google_connection.outputs.configured != 'true'
+        run: |
+          echo '::error::Vendor Bills authenticated source read was requested without a configured Google identity.'
+          exit 1
+
+      - name: Read Vendor Bills on manual dispatch or authorized marked push
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_live_sheets == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[vendor-manual-read]')) && steps.google_connection.outputs.configured == 'true'
         env:
           JP_VENDOR_BILLS_SHEET_ID: ${{ secrets.JP_VENDOR_BILLS_SHEET_ID }}
-          REQUIRE_LIVE: ${{ inputs.require_live_sheets || false }}
+        shell: bash
         run: |
-          if [[ -n "$JP_VENDOR_BILLS_SHEET_ID" ]]; then
-            python3 scripts/build_vendor_bills_public.py --output _site/data/vendor-bills-status.v1.json
-            echo 'Vendor Bills: authenticated aggregate refresh.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Vendor Bills: verified snapshot used. The optional source secret is unset.' >> "$GITHUB_STEP_SUMMARY"
-            if [[ "$REQUIRE_LIVE" == 'true' ]]; then
-              echo '::error::Missing JP_VENDOR_BILLS_SHEET_ID: authenticated Vendor Bills refresh was required.'
-              exit 1
-            fi
-          fi
+          set -euo pipefail
+          # Secret is optional; the existing publishing service account has Viewer
+          # and can locate the single exact-titled LIVE sheet through Drive metadata.
+          python3 scripts/build_vendor_bills_public.py --output _site/data/vendor-bills-status.v1.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('_site/data/vendor-bills-status.v1.json').read_text())
+          assert p['schema']=='jp.vendor-bills-status.v1'
+          assert p['sourceMode']=='MANUAL_AUTHENTICATED_READ'
+          assert p['revision']=='V000004'
+          assert p['sourceTabs']==35 and p['sourceRows']==1895
+          assert p['billRows']==259 and p['detailRows']==930
+          assert p['comparisonRows']==46 and p['reviewFlags']==509
+          PY
+          echo 'Vendor Bills: AUTHENTICATED LIVE GOOGLE SHEETS READ passed; 509 review flags remain open and no invoice payments are certified.' >> "$GITHUB_STEP_SUMMARY"
 
       # This conditional push is an explicitly authorized one-time/manual release,
       # not a periodic refresh and not an ordinary code-commit refresh.
