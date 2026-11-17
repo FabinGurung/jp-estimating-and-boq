@@ -124,7 +124,7 @@ jobs:
           python3 -m pip install 'google-auth>=2,<3' 'requests>=2,<3'
           python3 scripts/build_finance_from_google_sheets.py
           node scripts/validate-finance-public.mjs
-          echo 'Finance Google Sheets: AUTHENTICATED LIVE FETCH; totals validated.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'KKG Finance: AUTHENTICATED LIVE V1.1 THREE-TAB FETCH; 27 source vendor mini-tables/rollups and unique entry IDs validated. Original payment evidence remains private; no payments certified.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Stage static Pages files excluding Google credentials
         run: |
@@ -156,7 +156,7 @@ jobs:
         # The active Fabin source changed to 8 tabs, but its older adapter expects
         # the now-absent 18-tab normalized source. This mismatch is tracked in #62.
         # Only the explicitly user-approved Vendor-only release bypasses it.
-        if: steps.google_connection.outputs.configured == 'true' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[vendor-manual-read]'))
+        if: steps.google_connection.outputs.configured == 'true' && !(github.event_name == 'push' && (contains(github.event.head_commit.message, '[vendor-manual-read]') || contains(github.event.head_commit.message, '[kkg-v11-manual-read]')))
         shell: bash
         run: |
           set -euo pipefail
@@ -181,6 +181,13 @@ jobs:
         run: |
           echo '::warning::FABIN v0.7 NOT REFRESHED in this Vendor-only release; original source now has 8 tabs, while the former importer expects missing legacy normalized tabs. Tracking issue #62. Do not claim a current Fabin authenticated projection.'
           echo 'Fabin: source schema incompatibility OPEN (issue #62); this source is NOT authenticated/refreshed on this release. The existing private Google Sheet remains the authority; no Fabin financial rows were changed.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record KKG-only release hold on unrelated Fabin schema drift
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[kkg-v11-manual-read]')
+        shell: bash
+        run: |
+          echo '::warning::KKG V1.1 release explicitly skips the unrelated Fabin schema-drift importer (issue #62). No Fabin Google Sheet changed; Fabin is NOT authenticated/refreshed by this run.'
+          echo 'KKG: requesting an authenticated fresh exact-title V1.1 three-tab source read. Fabin: independent source-schema hold issue #62, not read in this one-time release. Vendor and Contractor Bills unchanged.' >> "$GITHUB_STEP_SUMMARY"
 
       # This marked push is a user-authorized one-time source-read release.
       # Ordinary pushes publish the checked snapshot; there is no scheduled refresh.
