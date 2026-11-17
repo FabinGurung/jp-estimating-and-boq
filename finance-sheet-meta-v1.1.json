@@ -12,16 +12,16 @@
   "excludedHiddenTabNamesPublished": false,
   "tabs": [
     {
-      "viewId": "payments",
-      "title": "Bishal Paija",
-      "sheetId": 846338599,
-      "mode": "public-safe-payment-snapshot"
-    },
-    {
       "viewId": "vendors",
       "title": "Total",
       "sheetId": 1177922624,
       "mode": "derived-project-and-vendor-summary"
+    },
+    {
+      "viewId": "payments",
+      "title": "Bishal Paija",
+      "sheetId": 846338599,
+      "mode": "public-safe-payment-snapshot"
     },
     {
       "viewId": "guide",
