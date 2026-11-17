@@ -153,7 +153,10 @@ jobs:
           echo 'Amrit source: AUTHENTICATED LIVE SHEET READ; only verified QTO and approved rate inputs admitted; BOQ remains draft pending approval.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Read Fabin v0.7 normalized Google Sheet into public-safe provisional project totals
-        if: steps.google_connection.outputs.configured == 'true'
+        # The active Fabin source changed to 8 tabs, but its older adapter expects
+        # the now-absent 18-tab normalized source. This mismatch is tracked in #62.
+        # Only the explicitly user-approved Vendor-only release bypasses it.
+        if: steps.google_connection.outputs.configured == 'true' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[vendor-manual-read]'))
         shell: bash
         run: |
           set -euo pipefail
@@ -171,6 +174,13 @@ jobs:
                         + '; five source-reported aggregates only, NOT certified payments; '
                         + 'Basketball excluded and Hari reconciliation debt visible.\\n')
           PY
+
+      - name: Record isolated Fabin source-schema hold on Vendor-only release
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[vendor-manual-read]')
+        shell: bash
+        run: |
+          echo '::warning::FABIN v0.7 NOT REFRESHED in this Vendor-only release; original source now has 8 tabs, while the former importer expects missing legacy normalized tabs. Tracking issue #62. Do not claim a current Fabin authenticated projection.'
+          echo 'Fabin: source schema incompatibility OPEN (issue #62); this source is NOT authenticated/refreshed on this release. The existing private Google Sheet remains the authority; no Fabin financial rows were changed.' >> "$GITHUB_STEP_SUMMARY"
 
       # This marked push is a user-authorized one-time source-read release.
       # Ordinary pushes publish the checked snapshot; there is no scheduled refresh.
