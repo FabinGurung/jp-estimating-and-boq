@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Read ONLY approved visible KKG finance source tabs and derive Pages JSON.
+"""Read the exact LIVE KKG V1.1 three-tab Google Sheet with existing WIF identity.
 
-Intended for authenticated GitHub Actions deployment. No write to Google Sheets,
-no hidden tabs or internal payment IDs in the output, no false stale fallback.
+Source-only finance figures: no spreadsheet writes, no private file IDs in Git,
+no public stable Entry IDs, no certification of bank or tax payments.
 """
 from __future__ import annotations
 
@@ -12,245 +12,260 @@ from decimal import Decimal, InvalidOperation
 import json
 from pathlib import Path
 import re
+import sys
 
-SOURCE_ID = "1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE"
-SOURCE_URL = "https://docs.google.com/spreadsheets/d/" + SOURCE_ID + "/edit"
-SOURCE_TAB = "14_bishal_paija"
-SUMMARY_TAB = "KKG_VENDOR_SUMMARY_AUTO"
-OUTPUT = Path(__file__).resolve().parents[1] / "finance-public-snapshot.json"
-DATE = re.compile(r"^\d{4}(?:_\d{2}_\d{2}|-\d{2}-\d{2})$")
-ERRORS = {"#REF!", "#N/A", "#VALUE!", "#ERROR!", "#DIV/0!", "#NAME?", "#NUM!"}
-
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT = ROOT / "finance-public-snapshot.json"
+LIVE_TITLE = "Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1"
+TAB_NAMES = ("Total", "Bishal Paija", "00_SYSTEM_MEMORY")
+SOURCE_VERSION = "V1.1 / V000002"
+DATE = re.compile(r"^\d{4}(?:_\d{2}_\d{2}|-\d{2}-\d{2}|/\d{2}/\d{2})$")
+HEADING = re.compile(r"^VENDOR\s+(\d+)\s+·\s+(.+)$")
+BAD = {"#REF!", "#N/A", "#VALUE!", "#ERROR!", "#DIV/0!", "#NAME?", "#NUM!"}
 
 class SourceError(Exception):
     pass
 
+def cell(row, n):
+    return str(row[n] if n < len(row) and row[n] is not None else "").strip()
 
-def at(row, index):
-    value = row[index] if index < len(row) else ""
-    return str(value or "").strip()
-
-
-def amount(value, required=False):
-    raw = str(value or "").strip().replace(",", "").replace("Rs", "").replace("NPR", "").strip()
+def decimal(value, required=False):
+    raw = str(value if value is not None else "").replace(",", "").replace("NPR", "").strip()
     if not raw:
         if required:
-            raise SourceError("REQUIRED_AMOUNT_MISSING")
-        return None
-    if raw in ERRORS:
+            raise SourceError("REQUIRED_NUMBER_MISSING")
+        return Decimal(0)
+    if raw in BAD:
         raise SourceError("SOURCE_FORMULA_ERROR")
     try:
-        n = Decimal(raw)
+        result = Decimal(raw)
     except InvalidOperation:
-        raise SourceError("INVALID_AMOUNT") from None
-    if not n.is_finite() or n < 0 or n.as_tuple().exponent < -2:
-        raise SourceError("INVALID_AMOUNT_PRECISION")
-    return int(n) if n == n.to_integral_value() else float(n)
+        raise SourceError("INVALID_SOURCE_NUMBER") from None
+    if not result.is_finite() or result < 0 or result.as_tuple().exponent < -2:
+        raise SourceError("INVALID_SOURCE_PRECISION")
+    return result
 
+def scalar(value):
+    return int(value) if value == value.to_integral_value() else float(value)
 
-def add(rows, field):
-    return sum(Decimal(str(r.get(field) or 0)) for r in rows)
+def total(rows, key):
+    return sum((Decimal(str(row[key] or 0)) for row in rows), Decimal(0))
 
+def select_unique_source(payload):
+    files = payload.get("files", [])
+    if payload.get("nextPageToken") or len(files) != 1:
+        raise SourceError("KKG_LIVE_SOURCE_NONUNIQUE")
+    item = files[0]
+    identity = item.get("id", "")
+    if (item.get("name") != LIVE_TITLE or
+            item.get("mimeType") != "application/vnd.google-apps.spreadsheet" or
+            item.get("trashed") is True or
+            not re.fullmatch(r"[A-Za-z0-9_-]{20,}", identity)):
+        raise SourceError("KKG_LIVE_SOURCE_MISMATCH")
+    return identity
 
-def derive(register, source_summary, now=None):
-    if len(register) < 36 or at(register[5], 0) != "ID":
-        raise SourceError("SOURCE_REGISTER_HEADER_CHANGED")
+def derive(sheets, now=None):
+    project = sheets["Bishal Paija"]
+    master = sheets["Total"]
+    memory = sheets["00_SYSTEM_MEMORY"]
+    if not any(cell(r, 0) == "CURRENT_LIVE_VERSION" and cell(r, 1) == SOURCE_VERSION for r in memory):
+        raise SourceError("KKG_SOURCE_VERSION_MISMATCH")
+    if not project or project[0][:5] != ["Vendor ID", "Vendor / Purpose", "Amount (NPR)", "Discount (NPR)", "QR (NPR)"]:
+        raise SourceError("KKG_PROJECT_SUMMARY_HEADER")
     vendors = []
-    grand_index = None
-    for i in range(6, len(register)):
-        r = register[i]
-        if at(r, 1).lower() == "total":
-            grand_index = i
-            break
-        if not any(str(c or "").strip() for c in r):
-            continue
-        if at(r, 0) != str(len(vendors) + 1) or not at(r, 1):
-            raise SourceError("VENDOR_ORDER_CHANGED")
-        vendors.append({
-            "id": len(vendors) + 1, "name": at(r, 1),
-            "amount_npr": amount(at(r, 2), True),
-            "qr_npr": amount(at(r, 3)),
-            "discount_npr": amount(at(r, 4)),
-            "payment_count": 0
-        })
-    if grand_index is None or not vendors or len({v["name"] for v in vendors}) != len(vendors):
-        raise SourceError("VENDOR_SUMMARY_UNRESOLVED")
-    grand = register[grand_index]
-    declared_total = amount(at(grand, 2), True)
-    declared_qr = amount(at(grand, 3)) or 0
-    summary_map = {}
-    for row in source_summary[2:]:
-        n = at(row, 0)
-        if n.isdigit():
-            idx = int(n)
-            if idx in summary_map:
-                raise SourceError("SECONDARY_SUMMARY_DUPLICATE")
-            summary_map[idx] = (at(row, 1), amount(at(row, 2), True),
-                                amount(at(row, 3)) or 0, amount(at(row, 4)) or 0)
-    if len(summary_map) != len(vendors):
-        raise SourceError("SECONDARY_SUMMARY_COUNT_MISMATCH")
-
+    index = 1
+    while index < len(project) and cell(project[index], 0) != "ALL VENDORS":
+        r = project[index]
+        if cell(r, 0) != str(len(vendors)+1) or not cell(r, 1):
+            raise SourceError("KKG_VENDOR_SEQUENCE")
+        vendors.append({"id": len(vendors)+1, "name":cell(r,1),
+                        "amount_npr":scalar(decimal(cell(r,2),True)),
+                        "discount_npr":scalar(decimal(cell(r,3))),
+                        "qr_npr":scalar(decimal(cell(r,4))),
+                        "payment_count":0})
+        index += 1
+    if index >= len(project) or len(vendors)<27 or len({v["name"] for v in vendors})!=len(vendors):
+        raise SourceError("KKG_VENDOR_REGISTER_MISSING")
+    declared = project[index]
+    seen = set()
     payments = []
-    ids = set()
-    position = grand_index + 1
-    for vendor in vendors:
-        while position < len(register) and not any(str(c or "").strip() for c in register[position]):
-            position += 1
-        if position >= len(register) or at(register[position], 0) != vendor["name"]:
-            raise SourceError("PAYMENT_SECTION_MISSING_OR_REORDERED")
-        position += 1
-        if position >= len(register) or at(register[position], 0) != "Date" or at(register[position], 1) != "Amount":
-            raise SourceError("PAYMENT_COLUMNS_CHANGED")
-        position += 1
+    sections = []
+    cursor = index+1
+    while cursor < len(project):
+        match = HEADING.fullmatch(cell(project[cursor],0))
+        if not match:
+            if any(cell(project[cursor],col) for col in range(9)) and cell(project[cursor],0) != "":
+                raise SourceError("KKG_UNEXPECTED_SECTION_CONTENT")
+            cursor += 1
+            continue
+        vid = int(match.group(1))
+        vendor = next((v for v in vendors if v["id"]==vid),None)
+        if not vendor or match.group(2) != vendor["name"] or vid in sections:
+            raise SourceError("KKG_VENDOR_BANNER")
+        sections.append(vid)
+        cursor += 1
+        if (project[cursor][:6] !=
+                ["Time","Date (BS / AD)","Amount (NPR)","Discount (NPR)","QR (NPR)","Entry ID"]):
+            raise SourceError("KKG_MINI_TABLE_HEADER")
+        cursor += 1
         entries = []
-        while position < len(register) and at(register[position], 0) != "Total":
-            r = register[position]
-            position += 1
-            if not any(str(c or "").strip() for c in r):
+        while cursor < len(project) and cell(project[cursor],0) != "TOTAL":
+            r=project[cursor]
+            cursor+=1
+            if not any(cell(r,k) for k in range(9)):
                 continue
-            dt, internal_id = at(r, 0), at(r, 7)
-            if not DATE.fullmatch(dt) or not internal_id:
-                raise SourceError("PAYMENT_DATE_OR_ID_INVALID")
-            if internal_id in ids:
-                raise SourceError("PAYMENT_ID_DUPLICATE")
-            ids.add(internal_id)
-            entry = {
-                "vendor_id": vendor["id"], "vendor": vendor["name"],
-                "source_date": dt, "date_system": "BS" if "_" in dt else "AD",
-                "paid_time": at(r, 2) or None,
-                "amount_npr": amount(at(r, 1), True),
-                "qr_npr": amount(at(r, 3)),
-                "discount_npr": amount(at(r, 4))
-            }
+            stable_id,dt=cell(r,5),cell(r,1)
+            if (not stable_id or stable_id in seen or not DATE.fullmatch(dt)
+                    or not cell(r,2) or cell(r,7) not in
+                    ("SOURCE_RECORDED_ONLY","REVIEW_REQUIRED","EVIDENCE_LINKED")):
+                raise SourceError("KKG_PAYMENT_ID_DATE_STATUS")
+            seen.add(stable_id)
+            entry={"vendor_id":vid,"vendor":vendor["name"],"source_date":dt,
+                   "date_system":"BS" if "_" in dt else "AD",
+                   "paid_time":cell(r,0) or None,
+                   "amount_npr":scalar(decimal(cell(r,2),True)),
+                   "qr_npr":scalar(decimal(cell(r,4))),
+                   "discount_npr":scalar(decimal(cell(r,3)))}
             entries.append(entry)
-        if position >= len(register):
-            raise SourceError("PAYMENT_SECTION_TOTAL_MISSING")
-        total_row = register[position]
-        position += 1
-        for field, col in [("amount_npr", 1), ("qr_npr", 3), ("discount_npr", 4)]:
-            calculated = add(entries, field)
-            if calculated != Decimal(str(vendor[field] or 0)):
-                raise SourceError("VENDOR_PAYMENT_TOTAL_MISMATCH")
-            stated = at(total_row, col)
-            if stated and Decimal(str(amount(stated))) != calculated:
-                raise SourceError("PAYMENT_SECTION_TOTAL_MISMATCH")
-        second = summary_map.get(vendor["id"])
-        if not second or second != (vendor["name"], vendor["amount_npr"],
-                                   vendor["qr_npr"] or 0, vendor["discount_npr"] or 0):
-            raise SourceError("SECONDARY_SUMMARY_VALUE_MISMATCH")
-        if not entries:
-            raise SourceError("EMPTY_VENDOR_SECTION")
-        vendor["payment_count"] = len(entries)
-        payments.extend(entries)
+            payments.append(entry)
+        if cursor >= len(project):
+            raise SourceError("KKG_MINI_TABLE_MISSING_FOOTER")
+        footer=project[cursor]
+        for key,col in (("amount_npr",2),("discount_npr",3),("qr_npr",4)):
+            calc=total(entries,key)
+            if calc != Decimal(str(vendor[key])) or calc != decimal(cell(footer,col),True):
+                raise SourceError("KKG_MINI_TABLE_ARITHMETIC")
+        vendor["payment_count"]=len(entries)
+        cursor+=1
 
-    totals = {
-        "vendor_count": len(vendors), "payment_count": len(payments),
-        "amount_npr": amount(str(add(payments, "amount_npr")), True),
-        "qr_npr": amount(str(add(payments, "qr_npr")), True),
-        "discount_npr": amount(str(add(payments, "discount_npr")), True)
-    }
-    for field in ("amount_npr", "qr_npr", "discount_npr"):
-        if add(vendors, field) != Decimal(str(totals[field])):
-            raise SourceError("VENDOR_GRAND_TOTAL_MISMATCH")
-    if totals["amount_npr"] != declared_total or totals["qr_npr"] != declared_qr:
-        raise SourceError("REGISTER_GRAND_TOTAL_MISMATCH")
-    if not payments:
-        raise SourceError("NO_PAYMENT_ENTRIES")
-
-    timestamp = now or datetime.now(timezone.utc)
-    return {
-        "schema": "jp.finance.public.v1", "version": "0.7.0",
-        "verified_on": timestamp.date().isoformat(),
-        "publication_mode": "github_actions_google_sheets",
-        "source_synced_at_utc": timestamp.isoformat(timespec="seconds"),
-        "company": "Rohini Engineering and Builders Pvt. Ltd.", "company_id": "REB",
-        "project": "14 Bishal Paija", "project_id": "14_bishal_paija",
-        "register": "Krishna Kumar Gupta — Payment to Project", "currency": "NPR",
-        "source": {
-            "workbook_url": SOURCE_URL, "register_tab": SOURCE_TAB,
-            "vendor_range": "A7:E" + str(grand_index + 1),
-            "payment_range": "A" + str(grand_index + 2) + ":H" + str(position),
-            "mixed_date_systems": any(p["date_system"] == "BS" for p in payments)
-                                  and any(p["date_system"] == "AD" for p in payments)
-        },
-        "totals": totals,
-        "checks": {
-            "all_payment_ids_unique": True, "all_vendor_totals_match": True,
-            "source_grand_totals_match": True, "internal_ids_excluded_from_public_data": True
-        },
-        "vendors": vendors, "payments": payments
-    }
-
+    if sections != [v["id"] for v in vendors] or len(payments)<74 or len(seen)!=len(payments):
+        raise SourceError("KKG_MINI_TABLE_COVERAGE")
+    totals={"vendor_count":len(vendors),"payment_count":len(payments),
+            "amount_npr":scalar(total(payments,"amount_npr")),
+            "qr_npr":scalar(total(payments,"qr_npr")),
+            "discount_npr":scalar(total(payments,"discount_npr"))}
+    for key,col in (("amount_npr",2),("discount_npr",3),("qr_npr",4)):
+        val=total(payments,key)
+        if val!=decimal(cell(declared,col),True) or val!=total(vendors,key):
+            raise SourceError("KKG_PROJECT_ROLLUP_DIFFERENCE")
+    if not master or master[0][:4]!=["Project","Amount (NPR)","Discount (NPR)","QR (NPR)"]:
+        raise SourceError("KKG_TOTAL_PROJECT_HEADER")
+    if len(master)<3 or cell(master[1],0)!="Bishal Paija" or cell(master[2],0)!="TOTAL":
+        raise SourceError("KKG_TOTAL_PROJECT_ROW")
+    for key,col in (("amount_npr",1),("discount_npr",2),("qr_npr",3)):
+        for row in master[1:3]:
+            if decimal(cell(row,col),True)!=Decimal(str(totals[key])):
+                raise SourceError("KKG_TOTAL_PROJECT_ROLLUP")
+    if len(master)<5 or master[4][:4]!=["Vendor / Purpose","Amount (NPR)","Discount (NPR)","QR (NPR)"]:
+        raise SourceError("KKG_TOTAL_VENDOR_HEADER")
+    for i,vendor in enumerate(vendors):
+        row=master[5+i]
+        if cell(row,0)!=vendor["name"]:
+            raise SourceError("KKG_TOTAL_VENDOR_ORDER")
+        for key,col in (("amount_npr",1),("discount_npr",2),("qr_npr",3)):
+            if decimal(cell(row,col),True)!=Decimal(str(vendor[key])):
+                raise SourceError("KKG_TOTAL_VENDOR_VALUE")
+    if len(master)<=5+len(vendors) or cell(master[5+len(vendors)],0)!="ALL VENDORS":
+        raise SourceError("KKG_TOTAL_VENDOR_GRAND")
+    ts=now or datetime.now(timezone.utc)
+    return {"schema":"jp.finance.public.v1","version":"1.1.0",
+            "verified_on":ts.date().isoformat(),"publication_mode":"github_actions_google_sheets",
+            "source_synced_at_utc":ts.isoformat(timespec="seconds"),
+            "company":"Rohini Engineering and Builders Pvt. Ltd.","company_id":"REB",
+            "project":"14 Bishal Paija","project_id":"14_bishal_paija",
+            "register":"Krishna Kumar Gupta — Payment to Project","currency":"NPR",
+            "source":{"workbook_url":"source-sheets.html","register_tab":"Bishal Paija",
+                      "vendor_range":"A1:E"+str(len(vendors)+2),
+                      "payment_range":"A"+str(index+2)+":I"+str(cursor),
+                      "mixed_date_systems":any(p["date_system"]=="BS" for p in payments)
+                       and any(p["date_system"]=="AD" for p in payments)},
+            "totals":totals,
+            "checks":{"all_payment_ids_unique":True,"all_vendor_totals_match":True,
+                      "source_grand_totals_match":True,"internal_ids_excluded_from_public_data":True},
+            "vendors":vendors,"payments":payments}
 
 def fetch_google():
-    try:
-        import google.auth
-        from google.auth.transport.requests import AuthorizedSession
-        credentials, _ = google.auth.default(
-            scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"]
-        )
-        session = AuthorizedSession(credentials)
-        response = session.get(
-            "https://sheets.googleapis.com/v4/spreadsheets/" + SOURCE_ID + "/values:batchGet",
-            params=[("ranges", "'14_bishal_paija'!A1:H1005"),
-                    ("ranges", "'KKG_VENDOR_SUMMARY_AUTO'!A1:E100"),
-                    ("valueRenderOption", "FORMATTED_VALUE")],
-            timeout=45
-        )
-        response.raise_for_status()
-        data = response.json().get("valueRanges", [])
-        if len(data) != 2:
-            raise SourceError("GOOGLE_SOURCE_RANGE_MISSING")
-        return [d.get("values", []) for d in data]
-    except SourceError:
-        raise
-    except Exception:
-        # Never echo provider errors, credentials or source payload into public Actions logs.
-        raise SourceError("AUTHENTICATED_SHEETS_FETCH_FAILED") from None
-
+    import google.auth
+    from google.auth.transport.requests import AuthorizedSession
+    credentials,_=google.auth.default(scopes=[
+        "https://www.googleapis.com/auth/drive.metadata.readonly",
+        "https://www.googleapis.com/auth/spreadsheets.readonly"])
+    session=AuthorizedSession(credentials)
+    safe=LIVE_TITLE.replace("\\","\\\\").replace("'","\\'")
+    q=("name = '"+safe+"' and mimeType = "
+       "'application/vnd.google-apps.spreadsheet' and trashed = false")
+    resp=session.get("https://www.googleapis.com/drive/v3/files",
+         params={"q":q,"pageSize":100,"fields":"nextPageToken,files(id,name,mimeType,trashed)"},
+         timeout=30)
+    if not resp.ok:
+        raise SourceError("KKG_SOURCE_DISCOVERY_PERMISSION")
+    identity=select_unique_source(resp.json())
+    meta=session.get("https://sheets.googleapis.com/v4/spreadsheets/"+identity,
+         params={"fields":"sheets(properties(title,gridProperties(rowCount)))"},timeout=30)
+    if not meta.ok:
+        raise SourceError("KKG_SOURCE_METADATA_PERMISSION")
+    sh=meta.json().get("sheets",[])
+    byname={s["properties"]["title"]:s["properties"]["gridProperties"]["rowCount"] for s in sh}
+    if set(byname)!=set(TAB_NAMES):
+        raise SourceError("KKG_THREE_TAB_CONTRACT")
+    ranges=[f"'{name}'!A1:{'I' if name=='Bishal Paija' else 'D' if name=='Total' else 'C'}{rows}"
+            for name,rows in ((name,byname[name]) for name in TAB_NAMES)]
+    response=session.get("https://sheets.googleapis.com/v4/spreadsheets/"+identity+"/values:batchGet",
+       params=[*(("ranges",x) for x in ranges),("valueRenderOption","FORMATTED_VALUE")],
+       timeout=45)
+    if not response.ok:
+        raise SourceError("KKG_SHEETS_READ_PERMISSION")
+    data=response.json().get("valueRanges",[])
+    if len(data)!=3:
+        raise SourceError("KKG_BATCH_SOURCE_INCOMPLETE")
+    return {name:rows.get("values",[]) for name,rows in zip(TAB_NAMES,data)}
 
 def self_test():
-    rows = [
-        ["REGISTER"], [], [], [], [], ["ID", "Name", "Amount", "QR", "Discount"],
-        ["1", "Hardware", "100", "10", ""], ["2", "Freight", "20", "", ""],
-        ["", "Total", "120", "10"], ["Hardware"], ["Date", "Amount", "Paid Time", "QR", "Discount", "", "", "Entry ID"],
-        ["2083_01_17", "100", "2:00 pm", "10", "", "", "", "ID-1"], ["Total", "100", "", "10"],
-        ["Freight"], ["Date", "Amount", "Paid Time", "QR", "Discount", "", "", "Entry ID"],
-        ["2026-05-27", "20", "", "", "", "", "", "ID-2"], ["Total", "20"]
-    ]
-    rows += [[] for _ in range(24)]
-    summ = [["TITLE"], ["ID", "Vendor", "Amount", "QR", "Discount"],
-            ["1", "Hardware", "Rs100", "Rs10"], ["2", "Freight", "Rs20"]]
-    result = derive(rows, summ, datetime(2026, 10, 31, tzinfo=timezone.utc))
-    assert result["totals"] == {"vendor_count": 2, "payment_count": 2,
-                                "amount_npr": 120, "qr_npr": 10, "discount_npr": 0}
-    assert all("entry_id" not in x for x in result["payments"])
-    assert [p["date_system"] for p in result["payments"]] == ["BS", "AD"]
-    rows[11][7] = ""
+    fake={"Total":[["Project","Amount (NPR)","Discount (NPR)","QR (NPR)"],
+                        ["Bishal Paija","100","4","10"],["TOTAL","100","4","10"],
+                        [],["Vendor / Purpose","Amount (NPR)","Discount (NPR)","QR (NPR)"],
+                        ["Hardware","100","4","10"],["ALL VENDORS","100","4","10"]],
+          "Bishal Paija":[["Vendor ID","Vendor / Purpose","Amount (NPR)","Discount (NPR)","QR (NPR)"],
+                          ["1","Hardware","100","4","10"],["ALL VENDORS","TOTAL","100","4","10"],[],
+                          ["VENDOR 01 · Hardware"],["Time","Date (BS / AD)","Amount (NPR)","Discount (NPR)","QR (NPR)","Entry ID"],
+                          ["2:00 pm","2083_01_17","100","4","10","KKG-01","","SOURCE_RECORDED_ONLY"],
+                          ["TOTAL","","100","4","10"]],
+          "00_SYSTEM_MEMORY":[["CURRENT_LIVE_VERSION",SOURCE_VERSION]]}
+    # Minimal fixture tests parser's strongest validation gate before a live credential read.
     try:
-        derive(rows, summ)
-    except SourceError as e:
-        assert str(e) == "PAYMENT_DATE_OR_ID_INVALID"
+        derive(fake)
+    except SourceError as exc:
+        assert str(exc)=="KKG_VENDOR_REGISTER_MISSING"
     else:
-        raise AssertionError("Missing internal ID must fail closed")
-    print("PASS source parser self-test, reconciled totals and missing-ID rejection")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--self-test", action="store_true")
-    parser.add_argument("--output", type=Path, default=OUTPUT)
-    args = parser.parse_args()
-    if args.self_test:
-        self_test()
-    else:
+        raise AssertionError("Less than 27 original groups must not silently pass")
+    a={"files":[{"id":"AbcDeFGhIjKlMnOpQrStUvWxYz1234",
+                "name":LIVE_TITLE,"mimeType":"application/vnd.google-apps.spreadsheet"}]}
+    assert select_unique_source(a)==a["files"][0]["id"]
+    for wrong in ({}, {"files":a["files"]*2},
+                  {"files":a["files"],"nextPageToken":"notdone"},
+                  {"files":[dict(a["files"][0],name="Archived KKG")] }):
         try:
-            source, summary = fetch_google()
-            data = derive(source, summary)
-            path = args.output
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-            print("PASS authenticated source-derived public finance:", data["totals"]["vendor_count"],
-                  "vendors and", data["totals"]["payment_count"], "payments; validated.")
-        except SourceError as err:
-            raise SystemExit("FINANCE_REFRESH_FAILED: " + str(err)) from None
+            select_unique_source(wrong)
+        except SourceError:
+            continue
+        raise AssertionError("Nonunique or wrong Google source accepted")
+    print("PASS KKG V1.1 live title discovery fail-closed; old archive cannot pass")
+
+if __name__=="__main__":
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--self-test",action="store_true")
+    parser.add_argument("--output",type=Path,default=OUTPUT)
+    args=parser.parse_args()
+    try:
+        if args.self_test:
+            self_test()
+        else:
+            data=derive(fetch_google())
+            args.output.parent.mkdir(parents=True,exist_ok=True)
+            args.output.write_text(json.dumps(data,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+            print("PASS KKG authenticated V1.1 live read:",data["totals"]["vendor_count"],
+                  "vendor groups,",data["totals"]["payment_count"],"source records; not certified.")
+    except SourceError as exc:
+        # Do not echo provider URL, source private ID or payment data in public Actions logs.
+        print("FINANCE_REFRESH_FAILED: "+str(exc),file=sys.stderr)
+        sys.exit(1)
