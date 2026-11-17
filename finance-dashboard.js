@@ -49,7 +49,7 @@
         throw new Error('A vendor total does not match its payment entries');
       }
     }
-    if (!/^https:\/\/docs\.google\.com\/spreadsheets\/d\//.test(data.source?.workbook_url || '')) {
+    if (data.source?.workbook_url !== 'source-sheets.html') {
       throw new Error('Source workbook link is missing');
     }
     return data;
