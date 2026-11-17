@@ -49,7 +49,7 @@
         throw new Error('A vendor total does not match its payment entries');
       }
     }
-    if (!/^https:\/\/docs\.google\.com\/spreadsheets\/d\//.test(data.source?.workbook_url || '')) {
+    if (data.source?.workbook_url !== 'source-sheets.html') {
       throw new Error('Source workbook link is missing');
     }
     return data;
@@ -185,7 +185,7 @@
     $('sourceLink').href = data.source.workbook_url;
     $('sourceButton').href = data.source.workbook_url;
     $('sourceDescription').textContent = data.register + ' · ' + data.project +
-      ' · ' + data.source.register_tab + '!A7:E34 and A35:H190 · ' +
+      ' · ' + data.source.register_tab + '!A1:E29 and 27 mini-tables · ' +
       data.totals.vendor_count + ' vendor sections and ' + data.totals.payment_count +
       ' payments reconcile to ' + money(data.totals.amount_npr) + '.';
     let expanded = false;

@@ -2,26 +2,23 @@
    All payment facts come from the existing verified public snapshot, not from a live Sheet API. */
 (() => {
   'use strict';
-  const SOURCE_ID = '1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE';
-  const SOURCE_URL = 'https://docs.google.com/spreadsheets/d/' + SOURCE_ID + '/edit';
+  const SOURCE_URL = 'source-sheets.html';
   const fmt = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtCount = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
   const money = value => value === null || value === undefined ? '—' : fmt.format(value);
   const views = [
-    { id: 'payments', title: '14_bishal_paija', sheetId: 594059714, note: 'All approved payment entries, in their original vendor-section order. The row number is a display index, not an internal entry ID.' },
-    { id: 'vendors', title: 'KKG_VENDOR_SUMMARY_AUTO', sheetId: 770000027, note: 'The same 27 vendor totals linked to the register. This is a derived view, not another set of payments.' },
-    { id: 'guide', title: '00_ENTRY_GUIDE', sheetId: 1487204034, note: 'Public-safe operating guidance selected from the source guide. Internal setup links and restricted instructions are not published.' },
-    { id: 'context', title: '00_SITE_CONTEXT', sheetId: 1785179762, note: 'Approved source identity, refresh status and public display rules. Internal system settings are omitted.' },
-    { id: 'enum', title: '_SYSTEM_ENUM', sheetId: 1064748325, note: 'Public date and amount definitions only. Historical artifact identifiers and internal system references are omitted.' }
+    { id: 'vendors', title: 'Total', sheetId: 1177922624, note: 'Public read-only summary of the one project and its 27 source-reported vendor groups; amounts, discounts and QR remain separate.' },
+    { id: 'payments', title: 'Bishal Paija', sheetId: 846338599, note: 'Public snapshot of 74 recorded payment entries sourced from 27 editable vendor mini-tables. Website shows no internal Entry IDs; edits happen only in the private Google Sheet.' },
+    { id: 'guide', title: '00_SYSTEM_MEMORY', sheetId: 256073749, note: 'Public-safe governance summary only. The private System Memory includes A7 PRE/POST, raw audit history and internal source references not published here.' }
   ];
   const guide = [
-    ['Live register', '14_bishal_paija is the editable payment register. This website is a read-only display.'],
-    ['Existing vendor payment', 'In the original Google Sheet, insert a new payment row above that vendor section’s Total row. Do not overwrite Total.'],
+    ['Live register', 'Bishal Paija contains 27 vendor mini-tables with manual entry rows. Total is derived and this website is read-only.'],
+    ['Existing vendor payment', 'Edit only the correct vendor mini-table in the LIVE V1.1 Bishal Paija sheet; enter rows above its TOTAL footer. Summary Amount, Discount and QR update by formula.'],
     ['New vendor', 'A new vendor section needs its own verified source table and linked totals. Do not copy colored cells and assume the structure was copied.'],
     ['Date and paid time', 'Keep the source date exactly as entered, including its AD or BS calendar. Paid Time is the recorded payment time, not the edit time.'],
     ['QR and discount', 'QR charges and discounts are independent fields. A blank field means not recorded, not zero.'],
     ['Summary totals', 'The vendor summary derives from the same original payment rows. Do not add summary totals to payment totals.'],
-    ['Source preservation', 'The original workbook and its historical source evidence must not be overwritten by this website.'],
+    ['Source preservation', 'Original V0.5 is retired and archived; current V1.1 has full A7 PRE/POST. This website never writes back to the source.'],
     ['Current website mode', 'Website refreshes happen only after an authorized source read and reconciliation. The website does not write to Google Sheets.'],
     ['Worker and company boundaries', 'Worker workbooks and Fishtail spending records are independent of this Rohini payment register.']
   ];
@@ -97,31 +94,6 @@
         };
       case 'guide':
         return { headers: ['Topic', 'Public guidance'], numeric: [], rows: guide.map(cells => ({ cells })) };
-      case 'context':
-        return {
-          headers: ['Group', 'Field', 'Verified public value'], numeric: [],
-          rows: [
-            ['Identity', 'Company', data.company],
-            ['Identity', 'Project', data.project],
-            ['Identity', 'Register', data.register],
-            ['Identity', 'Google Sheet ID', SOURCE_ID],
-            ['Source', 'Payment tab', data.source.register_tab],
-            ['Source', 'Vendor summary tab', 'KKG_VENDOR_SUMMARY_AUTO'],
-            ['Publication', 'Website display', (data.publication_mode === 'github_actions_google_sheets' ? 'Read-only, GitHub Actions Sheets refresh verified' : data.publication_mode === 'connected_google_sheet_verified_20261031' ? 'Read-only, source Sheet verified 2026-10-31' : 'Read-only, historical snapshot')],
-            ['Publication', 'Last verified', data.verified_on],
-            ['Publication', 'Approved fields', 'Company, project, vendor, source date, paid time, amount, QR and discount'],
-            ['Publication', 'Not displayed', 'Hidden system tabs, internal entry IDs, edit timestamps, private account details and test entries'],
-            ['Source totals', 'Vendors', String(t.vendor_count)],
-            ['Source totals', 'Payments', String(t.payment_count)],
-            ['Source totals', 'Amount (NPR)', money(t.amount_npr)],
-            ['Source totals', 'QR (NPR)', money(t.qr_npr)],
-            ['Source totals', 'Discount (NPR)', money(t.discount_npr)],
-            ['Calendar', 'AD and BS', 'Keep calendar systems distinct; no automatic date conversion'],
-            ['Company scope', 'Rohini only', 'Fishtail and worker workbooks are separate source authorities']
-          ].map(cells => ({ cells }))
-        };
-      case 'enum':
-        return { headers: ['Concept', 'Interpretation', 'Display rule'], numeric: [], rows: definitions.map(cells => ({ cells })) };
       default: throw new Error('Unknown source tab');
     }
   }
@@ -136,7 +108,7 @@
     const previous = $('fnS01Previous'), next = $('fnS01Next'), pager = $('fnS01Pager');
     const buttons = Array.from(root.querySelectorAll('[data-fn-s01-tab]'));
     if (!tableWrap || !panel || !search || !vendor || !calendar || !limit || !status || !buttons.length) return;
-    let data = null, active = 'payments', page = 0;
+    let data = null, active = 'vendors', page = 0;
     function setStatus(message, error = false) {
       status.textContent = message;
       status.classList.toggle('jp-fn-s01-error', error);
@@ -247,15 +219,6 @@
         setStatus('Worksheet ID copied: ' + view.title + '.');
       } catch {
         setStatus('Select the worksheet ID shown above to copy it.');
-      }
-    });
-    $('fnS01CopyId')?.addEventListener('click', async () => {
-      try {
-        if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
-        await navigator.clipboard.writeText(SOURCE_ID);
-        setStatus('Google Sheet ID copied.');
-      } catch {
-        setStatus('Select the Sheet ID shown above to copy it.');
       }
     });
     fetch('finance-public-snapshot.json', { cache: 'no-store' })

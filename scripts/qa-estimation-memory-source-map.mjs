@@ -12,7 +12,7 @@ const status=JSON.parse(read('data/vendor-bills-status.v1.json'));
 const contractorStatus=JSON.parse(read('data/contractor-bills-status.v1.json'));
 
 assert.equal(catalog.schema,'jp.website.connected-source-sheets.v1');
-assert.equal(catalog.version,'V000008');
+assert.equal(catalog.version,'V000009');
 assert.equal(catalog.repository,'FabinGurung/jp-estimating-and-boq');
 assert.equal(catalog.operatorPolicy.mode,'MANUAL_FIRST_NO_CRON');
 assert.equal(catalog.operatorPolicy.automatedIntervalMinutes,null);
@@ -40,9 +40,9 @@ assert.equal(vendor.fetchContract.mode,'OPTIONAL_AUTHENTICATED_ON_MANUAL_DISPATC
 assert.equal(vendor.fetchContract.readTabs.length,6);
 assert.equal(vendor.fetchContract.output,'data/vendor-bills-status.v1.json');
 const krishna=catalog.records.find(x=>x.ref==='RE-KKG-FINANCE-LIVE');
-assert.equal(krishna.title,'Krishna Kumar Gupta — Payments to Projects — Working v0.5');
-assert.equal(krishna.controlVersion,'V000005');
-assert.equal(krishna.fetchContract.readTabs.length,2);
+assert.equal(krishna.title,'Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1');
+assert.equal(krishna.controlVersion,'V000002');
+assert.deepEqual(krishna.fetchContract.readTabs,['Total','Bishal Paija','00_SYSTEM_MEMORY']);
 const contractor=optional[1];
 assert.equal(contractor.ref,'JP-CONTRACTOR-BILLS-LIVE');
 assert.equal(contractor.controlVersion,'V000002');
@@ -73,7 +73,7 @@ assert(js.includes("fetch('data/connected-website-sheets.v1.json'"));
 assert(js.includes('data.records.length!==8')&&js.includes('OPTIONAL_')&&js.includes('optional.length!==2'));
 assert(!js.includes('innerHTML')&&!js.includes('localStorage'));
 assert(guide.includes('Eight original and working Sheets')&&guide.includes('17 November 2026'));
-assert(guide.includes('Krishna Kumar Gupta — Payments to Projects — Working v0.5'));
+assert(guide.includes('Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1'));
 assert(guide.includes('id="estimationSystemToolbox"'));
 assert(guide.includes('Vendor Bills — Working Register — LIVE'));
 assert(guide.includes('03 — Bill of Contractors — Working Register — LIVE'));
@@ -81,7 +81,7 @@ assert(guide.includes('id="contractorBillsManualSource"'));
 assert(guide.includes('V000004') && guide.includes('NPR 500'));
 
 const privateIds=['1eLxWq8eKgod6i98uxrRqF-xJA85HLScWBPNj0ztUgz4','1R6GoESJmuJ6hFtAc69J8c2gnjgJfxWStjQ1tgeO8i3E',
- '1_MYCZ98tsfmWgTn_-jQBU9OcdrygwC9nlE9BF1gWK2k','1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE',
+ '1_MYCZ98tsfmWgTn_-jQBU9OcdrygwC9nlE9BF1gWK2k','1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE','1-DhklD5WyvNtsYNpEgvisIOlzNA6iSX_U3Bqci4FZ7I',
  '1QfVM08Zvd_mv7EXcTxT9WMYPHzTAUHOTmL10ULo4oIA','13uIoX0_urXfSEMLYRK01Pt9FWwYj5SfiLOxHhbr9HPE'];
 for(const privateId of privateIds){
  assert(!JSON.stringify(catalog).includes(privateId),'Private file ID leaked to source inventory');
@@ -126,6 +126,8 @@ assert(read('scripts/build_vendor_bills_public.py').includes('select_unique_sour
 assert(js.includes("fetch(fc.output,{cache:'no-store'})"));
 assert(read('docs/source-intake/ESTIMATION_SYSTEM_ARSENAL_V000001.md').includes('Workload Identity'));
 assert(read('docs/source-intake/KKG_V000005_FABIN_TEMPLATE_ALIGNMENT.md').includes('74'));
+assert(read('docs/source-intake/KKG_V1_1_VENDOR_MINI_TABLES_20261117.md').includes('V000002'));
+assert(read('memory-posters.html').includes('KKG V1.1'));
 assert(deploy.includes('JP_CONTRACTOR_BILLS_SHEET_ID')&&deploy.includes('require_contractor_live'));
 assert(read('scripts/build_contractor_bills_public.py').includes('spreadsheets.readonly'));
 assert(read('scripts/build_fabin_finance_from_google_sheets.py').includes('"V000004"'));

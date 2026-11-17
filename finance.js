@@ -4,7 +4,7 @@
   const heading = document.getElementById('companyHeading');
   const intro = document.getElementById('companySubheading');
   const selectors = Array.from(document.querySelectorAll('[data-company]'));
-  const sheetUrl = 'https://docs.google.com/spreadsheets/d/1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE/edit';
+  const sheetUrl = 'source-sheets.html';
   const companies = {
     rohini: { title:'Rohini Engineering and Builders Pvt. Ltd.', description:'Project-by-project Rohini payment records, not a consolidated cross-company ledger.',connected:true },
     fishtail: { title:'Fishtail Builders Pvt. Ltd.', description:'Fishtail is a separate organization. Its records are not inferred from Rohini transactions.',connected:false },
@@ -64,7 +64,7 @@
     caption.appendChild(el('h3','','Payment summary — 14 Bishal Paija'));
     caption.appendChild(el('p','','The '+data.summary.entry_count+' named rows below are reproduced from the workbook summary. The amount and QR totals reconcile to the working Google Sheet.'));
     head.appendChild(caption);
-    const open = el('a','finance-source-link','Open original Google Sheet ↗');
+    const open = el('a','finance-source-link','View governed source directory ↗');
     open.href=sheetUrl;open.target='_blank';open.rel='noopener noreferrer';
     head.appendChild(open);
     mount.appendChild(head);
@@ -149,11 +149,11 @@
     ['Rohini','›','14_Bishal_Paija','›','Payment to Project'].forEach(s=>crumb.appendChild(el('strong','',s)));
     root.appendChild(crumb);
     const source=el('article','finance-register');
-    source.innerHTML='<div class="finance-register-top"><div><p class="eyebrow">ROHINI · SOURCE GOOGLE SHEET · WORKING REGISTER v1.2</p>'+
+    source.innerHTML='<div class="finance-register-top"><div><p class="eyebrow">ROHINI · SOURCE GOOGLE SHEET · WORKING REGISTER V1.1</p>'+
       '<h3>Krishna Kumar Gupta — Payment to Project</h3>'+
       '<p>The payment source belongs to the Rohini project register. Its vendor/date/time details are maintained in the editable Google Sheet; the source-reconciled summary is presented below.</p>'+
       '</div><span class="badge ready">GOOGLE SHEETS SOURCE</span></div>';
-    const button=el('a','finance-source-link','Open editable payment workbook ↗');
+    const button=el('a','finance-source-link','Find editable LIVE payment workbook ↗');
     button.href=sheetUrl;button.target='_blank';button.rel='noopener noreferrer';source.appendChild(button);
     root.appendChild(source);
     const dash=el('section','finance-dashboard');dash.id='financeDashboard';

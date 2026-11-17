@@ -15,7 +15,7 @@ const readable=[
  'Amrit Rawat — Site Construction Rates (Indicative)',
  'Amrit Rawat — Measurements, BOQ, Cost Summary and Bills',
  'Construction Costing — Reusable Workbook Template',
- 'Krishna Kumar Gupta — Payments to Projects — Working v0.5',
+ 'Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1',
  'Fabin Gurung — Payments to Projects — Working v0.7',
  'Vendor Bills — Working Register — LIVE',
  '03 — Bill of Contractors — Working Register — LIVE'
@@ -31,7 +31,8 @@ for(const r of catalog.records){
  assert(read(pagePath).includes('<main'),'Source index page missing '+r.usagePage);
 }
 assert(!JSON.stringify(catalog).includes('private_key'));
-assert(!JSON.stringify(catalog).includes('1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE'),'Private full Sheet IDs are unnecessary in public machine inventory');
+assert(!JSON.stringify(catalog).includes('1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE'),'Retired private KKG source ID prohibited');
+assert(!JSON.stringify(catalog).includes('1-DhklD5WyvNtsYNpEgvisIOlzNA6iSX_U3Bqci4FZ7I'),'New live private KKG source ID prohibited');
 assert(!JSON.stringify(catalog).includes('13uIoX0_urXfSEMLYRK01Pt9FWwYj5SfiLOxHhbr9HPE'),'Do not echo client rate Sheet ID into public machine inventory');
 assert(!JSON.stringify(catalog).includes('1_MYCZ98tsfmWgTn_-jQBU9OcdrygwC9nlE9BF1gWK2k'),'Do not expose private Fabin spreadsheet ID');
 assert(reg.pages.length===71);

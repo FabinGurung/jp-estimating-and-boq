@@ -1,6 +1,6 @@
 {
   "schema": "jp.website.connected-source-sheets.v1",
-  "version": "V000008",
+  "version": "V000009",
   "auditedAtNpt": "2026-11-17",
   "repository": "FabinGurung/jp-estimating-and-boq",
   "folderName": "Cost Estimation — Working Google Sheets",
@@ -98,11 +98,11 @@
     },
     {
       "ref": "RE-KKG-FINANCE-LIVE",
-      "title": "Krishna Kumar Gupta — Payments to Projects — Working v0.5",
-      "authority": "Rohini Engineering and Builders, 14 Bishal Paija original 14_bishal_paija native payment tables. Same original Sheet ID; V000005 adds Total, Bishal Paija and 00_SYSTEM_MEMORY as linked human views, original 27 vendor and 74 payment records unchanged.",
-      "usedFor": "Source-recorded project payments, 27 vendors, 74 unique events, distinct NPR/QR/Discount amounts. Public-safe authenticated finance snapshot; source certification pending.",
+      "title": "Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1",
+      "authority": "Rohini Engineering and Builders, 14 Bishal Paija; NEW clean native three-tab LIVE ID after A7 V000007 retirement of the old 20-tab source. V000002 control; 27 directly editable vendor mini-tables, 74 original unique payment IDs, formula-linked amount/discount/QR and Total. Google Drive remains private source authority.",
+      "usedFor": "Source-recorded Rohini Bishal Paija project payments with live human-maintained vendor mini-tables; 74 original events and 27 original vendor IDs reconciled; Amount/QR/Discount separately preserved. Financial certification pending.",
       "usagePage": "finance-dashboard.html",
-      "publicationStatus": "Authenticated live Finance fetch verified in GitHub Actions",
+      "publicationStatus": "KKG V1.1 / V000002: Drive source native three-tab / manual mini-table QA confirmed. Existing GitHub WIF authenticated source reader replaced, but a fresh V1.1 GitHub Pages read must be independently verified before claiming public-current publication.",
       "originalFolder": "03_JP_Cost_Estimation / 02_HUMAN_WORKING_SHEETS / Cost Estimation — Working Google Sheets",
       "kind": "finance_live_source",
       "doesNotImply": "Actual approved bank payment, certified contractor bill, Fabin Gurung accounting or cross-project allocation",
@@ -110,15 +110,16 @@
         "mode": "AUTHENTICATED_ON_MANUAL_INVOKED_PAGES_DEPLOY",
         "importer": "scripts/build_finance_from_google_sheets.py",
         "readTabs": [
-          "14_bishal_paija",
-          "KKG_VENDOR_SUMMARY_AUTO"
+          "Total",
+          "Bishal Paija",
+          "00_SYSTEM_MEMORY"
         ],
         "output": "finance-public-snapshot.json",
-        "approval": "Rohini Bishal Paija original source only; financial events SOURCE_RECORDED_NOT_CERTIFIED; 74 source event IDs and 27 vendor groups reconcile; no cross-company mapping",
-        "trigger": "On user-authorized research Pages deployment, uses existing Google Workload Identity and unchanged original 14_bishal_paija plus KKG_VENDOR_SUMMARY_AUTO tabs. Layout V000005 does not require a new source ID or secret."
+        "approval": "Rohini Bishal Paija private V1.1 LIVE source only; 74 original events and 27 vendor groups source-reconciled. No bank/tax approval or cross-company join.",
+        "trigger": "User-invoked Research Pages deploy with existing WIF identity: exact one governed LIVE-title Drive metadata discovery; NEVER the retired V0.5 source ID. Read only three native V1.1 tabs and validate each vendor mini-table against linked summary and Total. No cron."
       },
-      "controlVersion": "V000005",
-      "presentationVersion": "v0.5; original 16 tabs and source IDs preserved; 3 linked human governance views added, 19 tabs total"
+      "controlVersion": "V000002",
+      "presentationVersion": "V1.1 — 3 visible native tabs, 27 mini-tables, source only not bank-certified"
     },
     {
       "ref": "JP-FABIN-PAYMENTS-LIVE",
@@ -249,7 +250,8 @@
     "17 Nov 2026: Krishna Kumar Gupta original permanent working Sheet V000005 aligned to Fabin source governance: Total, Bishal Paija linked five-column mini-tables and 00_SYSTEM_MEMORY added; original 27/74 records and native tables unchanged; PRE/POST archived privately.",
     "17 Nov 2026: Vendor Bills publisher service account granted Viewer on exact original LIVE file; authenticated optional importer now resolves the unique exact title using existing WIF/Drive metadata without new secret. Manual or user-authorized marked push required; ordinary push retains snapshot.",
     "Public source role cards must read the deployed aggregate's sourceMode for Vendor and Contractor; a configured adapter or GitHub success alone does not certify a current authenticated source read.",
-    "17 Nov 2026 deployment issue #62: original Fabin workbook currently has 8 tabs (Total, six human project tabs, 00_SYSTEM_MEMORY), while old authenticated script expects removed 00_MANIFEST, 01_PROJECTS, 03_PAYMENT_EVENTS, etc. The earlier authenticated source path is presently incompatible. A Vendor-only manual release may bypass that single failed reader with explicit warning, but other source adapters and Fabin source cells must remain untouched."
+    "17 Nov 2026 deployment issue #62: original Fabin workbook currently has 8 tabs (Total, six human project tabs, 00_SYSTEM_MEMORY), while old authenticated script expects removed 00_MANIFEST, 01_PROJECTS, 03_PAYMENT_EVENTS, etc. The earlier authenticated source path is presently incompatible. A Vendor-only manual release may bypass that single failed reader with explicit warning, but other source adapters and Fabin source cells must remain untouched.",
+    "17 Nov 2026: Krishna Kumar Gupta old 20-tab v0.5 working source retired to A7 history after full PRE; new native V1.1 (V000002) has exactly Total / Bishal Paija / 00_SYSTEM_MEMORY. 27 vendor mini-tables, 74 original entries with separate amount/discount/QR; new V000002 PRE/POST archived privately. Estimation reader now discovers unique exact LIVE title and validates schema with WIF; live publication must be independently QA-confirmed."
   ],
   "operatorPolicy": {
     "mode": "MANUAL_FIRST_NO_CRON",

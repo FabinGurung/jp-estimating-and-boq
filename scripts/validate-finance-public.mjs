@@ -26,7 +26,7 @@ assert.ok(snapshot.checks.all_payment_ids_unique);
 assert.ok(snapshot.checks.all_vendor_totals_match);
 assert.ok(snapshot.checks.source_grand_totals_match);
 assert.ok(snapshot.checks.internal_ids_excluded_from_public_data);
-assert.match(snapshot.source.workbook_url, /^https:\/\/docs\.google\.com\/spreadsheets\/d\//);
+assert.equal(snapshot.source.workbook_url, 'source-sheets.html');
 
 for (const key of ['amount_npr', 'qr_npr', 'discount_npr']) {
   assert.equal(sum(snapshot.vendors, key), snapshot.totals[key], 'Vendor ' + key + ' mismatch');
@@ -62,6 +62,6 @@ assert.ok(script.includes("fetch('finance-public-snapshot.json'"));
 assert.equal(context.publication.public_snapshot, 'finance-public-snapshot.json');
 assert.equal(context.publication.website_page, 'finance-dashboard.html');
 assert.equal(context.publication.mode, 'actions_deployment_refresh');
-assert.equal(context.rules.no_trigger_install, false);
+assert.equal(context.rules.no_trigger_install, true);
 console.log('Finance publication checks passed:', snapshot.vendors.length, 'vendors,',
   snapshot.payments.length, 'payments, NPR', snapshot.totals.amount_npr);
