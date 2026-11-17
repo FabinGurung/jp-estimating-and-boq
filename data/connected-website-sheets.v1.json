@@ -1,7 +1,7 @@
 {
   "schema": "jp.website.connected-source-sheets.v1",
-  "version": "V000007",
-  "auditedAtNpt": "2026-11-16",
+  "version": "V000008",
+  "auditedAtNpt": "2026-11-17",
   "repository": "FabinGurung/jp-estimating-and-boq",
   "folderName": "Cost Estimation — Working Google Sheets",
   "folderUrl": "https://drive.google.com/drive/folders/1v0yTowZ8mbTtT7euPgrPeEndFKPPH0IU",
@@ -98,14 +98,14 @@
     },
     {
       "ref": "RE-KKG-FINANCE-LIVE",
-      "title": "Krishna Kumar Gupta — Project Payment Register",
-      "authority": "Original Rohini actual payment register",
-      "usedFor": "Previously verified finance snapshot and payment dashboard",
+      "title": "Krishna Kumar Gupta — Payments to Projects — Working v0.5",
+      "authority": "Rohini Engineering and Builders, 14 Bishal Paija original 14_bishal_paija native payment tables. Same original Sheet ID; V000005 adds Total, Bishal Paija and 00_SYSTEM_MEMORY as linked human views, original 27 vendor and 74 payment records unchanged.",
+      "usedFor": "Source-recorded project payments, 27 vendors, 74 unique events, distinct NPR/QR/Discount amounts. Public-safe authenticated finance snapshot; source certification pending.",
       "usagePage": "finance-dashboard.html",
       "publicationStatus": "Authenticated live Finance fetch verified in GitHub Actions",
-      "originalFolder": "03_PROJECT_PAYMENT_REGISTERS / 01_KRISHNA_KUMAR_GUPTA__LIVE_REGISTER",
+      "originalFolder": "03_JP_Cost_Estimation / 02_HUMAN_WORKING_SHEETS / Cost Estimation — Working Google Sheets",
       "kind": "finance_live_source",
-      "doesNotImply": "Amrit payment mapping, a project estimate, or any cross-project financial allocation",
+      "doesNotImply": "Actual approved bank payment, certified contractor bill, Fabin Gurung accounting or cross-project allocation",
       "fetchContract": {
         "mode": "AUTHENTICATED_ON_MANUAL_INVOKED_PAGES_DEPLOY",
         "importer": "scripts/build_finance_from_google_sheets.py",
@@ -114,9 +114,11 @@
           "KKG_VENDOR_SUMMARY_AUTO"
         ],
         "output": "finance-public-snapshot.json",
-        "approval": "Independent Rohini payment source; no cross-company mapping by default",
-        "trigger": "Manual Cost Estimation Pages refresh or user-authorized publishing commit"
-      }
+        "approval": "Rohini Bishal Paija original source only; financial events SOURCE_RECORDED_NOT_CERTIFIED; 74 source event IDs and 27 vendor groups reconcile; no cross-company mapping",
+        "trigger": "On user-authorized research Pages deployment, uses existing Google Workload Identity and unchanged original 14_bishal_paija plus KKG_VENDOR_SUMMARY_AUTO tabs. Layout V000005 does not require a new source ID or secret."
+      },
+      "controlVersion": "V000005",
+      "presentationVersion": "v0.5; original 16 tabs and source IDs preserved; 3 linked human governance views added, 19 tabs total"
     },
     {
       "ref": "JP-FABIN-PAYMENTS-LIVE",
@@ -159,7 +161,7 @@
       "authority": "Permanent native working register within Cost Estimation; 35 original source tabs and 11 derived/guide/control tabs, human-first arrangement V000004; original Excel retained",
       "usedFor": "Supplier bills, invoices and detail/delivery evidence; project/vendor source summaries, review queue and manual normalization QA",
       "usagePage": "memory-posters.html#vendor-bills-intake",
-      "publicationStatus": "VERIFIED_SNAPSHOT V000004 (35 original source tabs, 1,895 indexed rows, 259 bills, 930 details, 509 OPEN flags); NOT A CONFIRMED LIVE AUTHENTICATED READ",
+      "publicationStatus": "Public deployed sourceMode is determined by the current vendor-bills-status.v1.json: VERIFIED_SNAPSHOT or MANUAL_AUTHENTICATED_READ. User-authorized source read requested 17 Nov; never infer live status merely from an Actions build.",
       "originalFolder": "03_JP_Cost_Estimation / 02_HUMAN_WORKING_SHEETS / Cost Estimation — Working Google Sheets",
       "kind": "vendor_bills_manual_source",
       "doesNotImply": "An approved bill, verified supplier/legal identity, certified project expenditure, or proof of money paid; source evidence remains in private Drive",
@@ -180,9 +182,9 @@
         ],
         "output": "data/vendor-bills-status.v1.json",
         "approval": "0 APPROVED; 509 OPEN; candidate project and supplier mappings not verified; 2 Hari Baral differences unresolved",
-        "trigger": "Manual research Pages workflow_dispatch with JP_VENDOR_BILLS_SHEET_ID secret and authenticated private Sheet permission; sourceMode MANUAL_AUTHENTICATED_READ only after successful read",
+        "trigger": "Explicit workflow_dispatch with require_live_sheets=true, or a user-authorized publishing commit tagged [vendor-manual-read]. Existing WIF Google Viewer account finds one exact-title LIVE workbook by Drive metadata when optional JP_VENDOR_BILLS_SHEET_ID private secret is absent. Only successful verified read may publish MANUAL_AUTHENTICATED_READ.",
         "historicalPublication": "GitHub Pages push deploys VERIFIED_SNAPSHOT, independent of Google Sheets direct access",
-        "privacy": "No source file ID, direct private spreadsheet link, row-level supplier amount, invoice or payment data in public registry"
+        "privacy": "Source ID and invoice data remain in private Drive; exact-title discovery fails on missing/ambiguous source. Existing publisher Viewer access granted 17 Nov 2026."
       }
     },
     {
@@ -191,7 +193,7 @@
       "authority": "Permanent native contractor work-claim register in Cost Estimation; 6 original source tabs preserved plus 2 controls and 10 CT_ human/normalized QA tabs, A7 V000002 PRE/POST, normalized data V000001",
       "usedFor": "Contractor work claim summaries, line descriptions, source rates/dates, historical overlap comparisons, project/party candidate mapping, manual evidence review; not a certified payable or payment register",
       "usagePage": "memory-posters.html#contractor-bills-intake",
-      "publicationStatus": "VERIFIED_SNAPSHOT V000002 (6 original tabs, 80 indexed source rows, 2 source claims, 33 primary work lines, 34 non-additive historical rows, 16 OPEN review issues, 0 approved claims); NOT A CONFIRMED LIVE AUTHENTICATED READ",
+      "publicationStatus": "A 17 Nov 2026 manually authorized GitHub Actions run verified MANUAL_AUTHENTICATED_READ V000002 (6 source tabs, 80 rows, 2 claims, 33 work items, 16 OPEN reviews). The checked-in JSON remains a VERIFIED_SNAPSHOT fallback on ordinary builds.",
       "originalFolder": "03_JP_Cost_Estimation / 02_HUMAN_WORKING_SHEETS / Cost Estimation — Working Google Sheets",
       "kind": "contractor_bills_manual_source",
       "doesNotImply": "Contractor certificate, quantity measurement approval, legally verified party, correct project allocation, supplier invoice or money paid; private original and A7 audit in restricted Google Drive",
@@ -243,7 +245,10 @@
     "Contractor Bills V000002 is the eighth official working/reference Google Sheet. The original live native ID was retained and moved into the Cost Estimation working folder; all 6 source tabs, original formulas and original Excel evidence were preserved, two empty tabs hidden not deleted. A7 PRE/POST and private contractor QA Doc are in their governed folders.",
     "User-made Vendor Bills manual duplicate created 16 Nov 2026 was archived in its Vendor Bills history folder as MANUAL_COPY, not a formal PRE/POST nor another LIVE authority; original Vendor Bills ID unaffected.",
     "Contractor Bills new aggregate is a VERIFIED_SNAPSHOT. Configured optional manual authenticated source adapter still requires user-side private secret and Google IAM read access; do not label it a live Google read before verified Actions evidence.",
-    "17 Nov 2026: service account jp-pages-publisher granted Viewer to the original Contractor Bills LIVE Google Sheet; optional manual importer now supports exact-title Drive metadata discovery. No new GitHub secret is strictly required for a unique shared file. The authenticated read must still pass an Actions run; ordinary pushes retain VERIFIED_SNAPSHOT."
+    "17 Nov 2026: service account jp-pages-publisher granted Viewer to the original Contractor Bills LIVE Google Sheet; optional manual importer now supports exact-title Drive metadata discovery. No new GitHub secret is strictly required for a unique shared file. The authenticated read must still pass an Actions run; ordinary pushes retain VERIFIED_SNAPSHOT.",
+    "17 Nov 2026: Krishna Kumar Gupta original permanent working Sheet V000005 aligned to Fabin source governance: Total, Bishal Paija linked five-column mini-tables and 00_SYSTEM_MEMORY added; original 27/74 records and native tables unchanged; PRE/POST archived privately.",
+    "17 Nov 2026: Vendor Bills publisher service account granted Viewer on exact original LIVE file; authenticated optional importer now resolves the unique exact title using existing WIF/Drive metadata without new secret. Manual or user-authorized marked push required; ordinary push retains snapshot.",
+    "Public source role cards must read the deployed aggregate's sourceMode for Vendor and Contractor; a configured adapter or GitHub success alone does not certify a current authenticated source read."
   ],
   "operatorPolicy": {
     "mode": "MANUAL_FIRST_NO_CRON",
@@ -261,6 +266,6 @@
     "researchPagesWorkflow": ".github/workflows/deploy-research-pages.yml",
     "amritRatesManualWorkflow": ".github/workflows/amrit-rawat-daily-sheet-sync.yml",
     "updatedOn": "2026-11-17",
-    "claim": "Contractor Bills has its existing Google Sheets viewer grant and a fail-closed exact-title Drive metadata lookup; actual current Pages authentication is asserted only by verified marked-push or manual workflow run. Four established feeds, two optional manual feeds, and two references/templates; NO CRON."
+    "claim": "Four established authenticated paths (including KKG original source with V000005 linked human presentation), two optional manual-only Vendor/Contractor readers with existing WIF Viewer access and fail-closed exact-title Drive discovery, and two references. Current deployed sourceMode must be read from status JSON, not inferred from checked-in fallback. No cron or scheduled interval."
   }
 }
