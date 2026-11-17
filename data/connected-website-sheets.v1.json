@@ -126,10 +126,10 @@
       "authority": "Existing native LIVE Fabin payment source; control version V000004, 439 normalized source events remain V000001",
       "usedFor": "Authenticated per-project source-reported Finance aggregates; does not certify paid expenditure or disclose private transaction-level data",
       "usagePage": "finance.html",
-      "publicationStatus": "Configured as authenticated public-safe aggregate; source V000004 follows Hari Baral top-summary repair. New deployment/re-read requires manual run; figures NOT approved.",
+      "publicationStatus": "HISTORICALLY_AUTHENTICATED_BUT_CURRENTLY_BLOCKED: the Fabin source changed to eight active tabs with consolidated 00_SYSTEM_MEMORY; old adapter still requires missing normalized source tabs. New authenticated read FAILED on 17 Nov 2026 (Actions 44040022127); tracked in Estimation issue #62. Do not claim current fresh Fabin data. Original Google Sheet is unchanged by this publishing repair.",
       "originalFolder": "Historical finance and purchasing evidence under 03_JP_Cost_Estimation / 03_PROJECT_PAYMENT_REGISTERS; LIVE source now in 02_HUMAN_WORKING_SHEETS",
       "kind": "finance_live_source",
-      "doesNotImply": "Proof of payments, verified project IDs, evidence approval, or approval of duplicated Basketball/Prithivi entries.",
+      "doesNotImply": "A current successfully refreshed Fabin source after 17 Nov 2026; no payment approval, verified project IDs, evidence approval, or Basketball/Prithivi deduplication",
       "fetchContract": {
         "mode": "AUTHENTICATED_ON_MANUAL_INVOKED_PAGES_DEPLOY",
         "importer": "scripts/build_fabin_finance_from_google_sheets.py",
@@ -152,7 +152,7 @@
         ],
         "output": "fabin-payments-public.json",
         "approval": "SOURCE_REPORTED_NOT_APPROVED; 19/19 Basketball/Prithivi overlaps deferred; Hari Baral NPR 500 top summary linked in V000004, source arithmetic now matches but payment not certified",
-        "trigger": "Manual Cost Estimation Pages refresh or user-authorized publishing commit"
+        "trigger": "Normal publishing runs currently blocked by current source-tab drift; previous authenticated reads were valid at their original publication time, but current Fabin importer must be updated under issue #62. On the explicitly authorized one-time [vendor-manual-read] release ONLY, Fabin source is deliberately skipped with a written warning, without touching Fabin Sheets."
       }
     },
     {
@@ -248,7 +248,8 @@
     "17 Nov 2026: service account jp-pages-publisher granted Viewer to the original Contractor Bills LIVE Google Sheet; optional manual importer now supports exact-title Drive metadata discovery. No new GitHub secret is strictly required for a unique shared file. The authenticated read must still pass an Actions run; ordinary pushes retain VERIFIED_SNAPSHOT.",
     "17 Nov 2026: Krishna Kumar Gupta original permanent working Sheet V000005 aligned to Fabin source governance: Total, Bishal Paija linked five-column mini-tables and 00_SYSTEM_MEMORY added; original 27/74 records and native tables unchanged; PRE/POST archived privately.",
     "17 Nov 2026: Vendor Bills publisher service account granted Viewer on exact original LIVE file; authenticated optional importer now resolves the unique exact title using existing WIF/Drive metadata without new secret. Manual or user-authorized marked push required; ordinary push retains snapshot.",
-    "Public source role cards must read the deployed aggregate's sourceMode for Vendor and Contractor; a configured adapter or GitHub success alone does not certify a current authenticated source read."
+    "Public source role cards must read the deployed aggregate's sourceMode for Vendor and Contractor; a configured adapter or GitHub success alone does not certify a current authenticated source read.",
+    "17 Nov 2026 deployment issue #62: original Fabin workbook currently has 8 tabs (Total, six human project tabs, 00_SYSTEM_MEMORY), while old authenticated script expects removed 00_MANIFEST, 01_PROJECTS, 03_PAYMENT_EVENTS, etc. The earlier authenticated source path is presently incompatible. A Vendor-only manual release may bypass that single failed reader with explicit warning, but other source adapters and Fabin source cells must remain untouched."
   ],
   "operatorPolicy": {
     "mode": "MANUAL_FIRST_NO_CRON",
@@ -266,6 +267,6 @@
     "researchPagesWorkflow": ".github/workflows/deploy-research-pages.yml",
     "amritRatesManualWorkflow": ".github/workflows/amrit-rawat-daily-sheet-sync.yml",
     "updatedOn": "2026-11-17",
-    "claim": "Four established authenticated paths (including KKG original source with V000005 linked human presentation), two optional manual-only Vendor/Contractor readers with existing WIF Viewer access and fail-closed exact-title Drive discovery, and two references. Current deployed sourceMode must be read from status JSON, not inferred from checked-in fallback. No cron or scheduled interval."
+    "claim": "Current live source-read status must be separately verified: KKG and Amrit authenticated reader earlier pass, Vendor/Contractor explicitly manual, Fabin current importer on HOLD due eight-tab schema drift tracked issue #62. Vendor-only marked deploy bypasses Fabin with explicit warning, not a current Fabin read. No scheduled intervals."
   }
 }
