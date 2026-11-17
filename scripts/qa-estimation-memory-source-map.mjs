@@ -123,7 +123,7 @@ assert(!/^\s*schedule:/m.test(read('.github/workflows/sync-amrit-rawat-rates.yml
 assert(deploy.includes('JP_VENDOR_BILLS_SHEET_ID')&&deploy.includes("github.event_name == 'workflow_dispatch'"));
 assert(deploy.includes('[vendor-manual-read]'));
 assert(read('scripts/build_vendor_bills_public.py').includes('select_unique_source'));
-assert(js.includes('fetch(fc.output)'));
+assert(js.includes("fetch(fc.output,{cache:'no-store'})"));
 assert(read('docs/source-intake/ESTIMATION_SYSTEM_ARSENAL_V000001.md').includes('Workload Identity'));
 assert(read('docs/source-intake/KKG_V000005_FABIN_TEMPLATE_ALIGNMENT.md').includes('74'));
 assert(deploy.includes('JP_CONTRACTOR_BILLS_SHEET_ID')&&deploy.includes('require_contractor_live'));
