@@ -104,7 +104,7 @@
       </article>
       <article class="memory-mini memory-next">
         <h3>Manual read-only projection</h3>
-        <p>GitHub can publish a <strong>Verified snapshot · V000002</strong> without accessing the private Sheet. A separate authenticated source read is optional on explicit manual GitHub Actions dispatch and requires the private `JP_CONTRACTOR_BILLS_SHEET_ID` setting and Google read access. No cron or automatic approval.</p>
+        <p>GitHub can publish a <strong>Verified snapshot · V000002</strong> without accessing the private Sheet. A separate authenticated source read is optional on explicit manual GitHub Actions dispatch and uses the existing viewer-authorized Google publishing identity, discovering the uniquely named LIVE Sheet via read-only Drive metadata. The private `JP_CONTRACTOR_BILLS_SHEET_ID` secret is optional. A live read occurs only on explicit manual workflow selection or an authorized marked release push. No cron or automatic approval.</p>
         <a href="docs/source-intake/CONTRACTOR_BILLS_REVIEW_V000002.md">Read the public-safe V000002 source-contract and QA checkpoint →</a>
       </article>
     </div>
