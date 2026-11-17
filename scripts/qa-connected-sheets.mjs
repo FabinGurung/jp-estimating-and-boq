@@ -15,7 +15,7 @@ const readable=[
  'Amrit Rawat — Site Construction Rates (Indicative)',
  'Amrit Rawat — Measurements, BOQ, Cost Summary and Bills',
  'Construction Costing — Reusable Workbook Template',
- 'Krishna Kumar Gupta — Project Payment Register',
+ 'Krishna Kumar Gupta — Payments to Projects — Working v0.5',
  'Fabin Gurung — Payments to Projects — Working v0.7',
  'Vendor Bills — Working Register — LIVE',
  '03 — Bill of Contractors — Working Register — LIVE'

@@ -12,7 +12,7 @@ const status=JSON.parse(read('data/vendor-bills-status.v1.json'));
 const contractorStatus=JSON.parse(read('data/contractor-bills-status.v1.json'));
 
 assert.equal(catalog.schema,'jp.website.connected-source-sheets.v1');
-assert.equal(catalog.version,'V000007');
+assert.equal(catalog.version,'V000008');
 assert.equal(catalog.repository,'FabinGurung/jp-estimating-and-boq');
 assert.equal(catalog.operatorPolicy.mode,'MANUAL_FIRST_NO_CRON');
 assert.equal(catalog.operatorPolicy.automatedIntervalMinutes,null);
@@ -33,11 +33,16 @@ assert.equal(vendor.controlVersion,'V000004');
 assert.equal(vendor.normalizedDataVersion,'V000001');
 assert.equal(vendor.liveTabCount,46);
 assert.equal(vendor.originalSourceTabs,35);
-assert(vendor.publicationStatus.includes('VERIFIED_SNAPSHOT V000004'));
-assert(vendor.publicationStatus.includes('NOT A CONFIRMED LIVE AUTHENTICATED READ'));
+assert(vendor.publicationStatus.includes('VERIFIED_SNAPSHOT') && vendor.publicationStatus.includes('MANUAL_AUTHENTICATED_READ'));
+assert(vendor.fetchContract.trigger.includes('[vendor-manual-read]'));
+assert(vendor.fetchContract.trigger.includes('Drive metadata'));
 assert.equal(vendor.fetchContract.mode,'OPTIONAL_AUTHENTICATED_ON_MANUAL_DISPATCH');
 assert.equal(vendor.fetchContract.readTabs.length,6);
 assert.equal(vendor.fetchContract.output,'data/vendor-bills-status.v1.json');
+const krishna=catalog.records.find(x=>x.ref==='RE-KKG-FINANCE-LIVE');
+assert.equal(krishna.title,'Krishna Kumar Gupta — Payments to Projects — Working v0.5');
+assert.equal(krishna.controlVersion,'V000005');
+assert.equal(krishna.fetchContract.readTabs.length,2);
 const contractor=optional[1];
 assert.equal(contractor.ref,'JP-CONTRACTOR-BILLS-LIVE');
 assert.equal(contractor.controlVersion,'V000002');
@@ -47,8 +52,8 @@ assert.equal(contractor.originalSourceTabs,6);
 assert.equal(contractor.fetchContract.mode,'OPTIONAL_AUTHENTICATED_ON_MANUAL_DISPATCH');
 assert.equal(contractor.fetchContract.output,'data/contractor-bills-status.v1.json');
 assert.equal(contractor.fetchContract.readTabs.length,9);
-assert(contractor.publicationStatus.includes('VERIFIED_SNAPSHOT V000002'));
-assert(contractor.publicationStatus.includes('NOT A CONFIRMED LIVE AUTHENTICATED READ'));
+assert(contractor.publicationStatus.includes('MANUAL_AUTHENTICATED_READ V000002'));
+assert(contractor.publicationStatus.includes('VERIFIED_SNAPSHOT fallback'));
 for(const x of [...feeds,...optional]){
  assert(Array.isArray(x.fetchContract.readTabs) && x.fetchContract.readTabs.length>0);
  assert(new Set(x.fetchContract.readTabs).size===x.fetchContract.readTabs.length);
@@ -60,14 +65,16 @@ for(const x of [...feeds,...optional]){
 }
 for(const x of reference)assert.equal(x.fetchContract.readTabs.length,0);
 
-for(const part of ['id="google-sheets-fetched"','id="estimationSourceCount"','id="estimationSourceCards"','src="memory-source-register.js"','MANUAL-FIRST MODE','No cron / unattended interval','V000004 human-first QA','30 original supplier tabs','id="contractor-bills-intake"','src="contractor-bills-status.js"','V000002 contractor QA','33 primary work lines']){
+for(const part of ['id="google-sheets-fetched"','id="estimationSourceCount"','id="estimationSourceCards"','src="memory-source-register.js"','MANUAL-FIRST MODE','No cron / unattended interval','V000004 human-first QA','30 original supplier tabs','id="contractor-bills-intake"','src="contractor-bills-status.js"','V000002 contractor QA','33 primary work lines','id="estimation-system-arsenal"','id="krishna-payments-v000005"']){
  assert(html.includes(part),'Memory Wall missing '+part);
 }
 assert(html.indexOf('id="google-sheets-fetched"')<html.indexOf('id="vendor-bills-intake"'));
 assert(js.includes("fetch('data/connected-website-sheets.v1.json'"));
 assert(js.includes('data.records.length!==8')&&js.includes('OPTIONAL_')&&js.includes('optional.length!==2'));
 assert(!js.includes('innerHTML')&&!js.includes('localStorage'));
-assert(guide.includes('Eight original and working Sheets')&&guide.includes('16 November 2026'));
+assert(guide.includes('Eight original and working Sheets')&&guide.includes('17 November 2026'));
+assert(guide.includes('Krishna Kumar Gupta — Payments to Projects — Working v0.5'));
+assert(guide.includes('id="estimationSystemToolbox"'));
 assert(guide.includes('Vendor Bills — Working Register — LIVE'));
 assert(guide.includes('03 — Bill of Contractors — Working Register — LIVE'));
 assert(guide.includes('id="contractorBillsManualSource"'));
@@ -114,7 +121,12 @@ assert(deploy.includes('workflow_dispatch:'));
 assert(!/^\s*schedule:/m.test(deploy),'Research Pages must not run on cron');
 assert(!/^\s*schedule:/m.test(read('.github/workflows/sync-amrit-rawat-rates.yml')));
 assert(deploy.includes('JP_VENDOR_BILLS_SHEET_ID')&&deploy.includes("github.event_name == 'workflow_dispatch'"));
+assert(deploy.includes('[vendor-manual-read]'));
+assert(read('scripts/build_vendor_bills_public.py').includes('select_unique_source'));
+assert(js.includes('fetch(fc.output)'));
+assert(read('docs/source-intake/ESTIMATION_SYSTEM_ARSENAL_V000001.md').includes('Workload Identity'));
+assert(read('docs/source-intake/KKG_V000005_FABIN_TEMPLATE_ALIGNMENT.md').includes('74'));
 assert(deploy.includes('JP_CONTRACTOR_BILLS_SHEET_ID')&&deploy.includes('require_contractor_live'));
 assert(read('scripts/build_contractor_bills_public.py').includes('spreadsheets.readonly'));
 assert(read('scripts/build_fabin_finance_from_google_sheets.py').includes('"V000004"'));
-console.log('ESTIMATION SOURCE MEMORY PASS: 8 owner Sheets / 4 established fetches / 2 optional manual Vendor and Contractor / 2 reference; V000004 and V000002 checked snapshots; no private IDs or cron');
+console.log('ESTIMATION SOURCE MEMORY PASS: 8 owner Sheets / 4 established fetches / 2 optional manual Vendor and Contractor / 2 reference; V000004 Vendor and V000002 Contractor checked fallback snapshots; deployed modes validated separately; no private IDs or cron');
