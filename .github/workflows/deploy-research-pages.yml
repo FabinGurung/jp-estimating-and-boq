@@ -189,32 +189,37 @@ jobs:
             fi
           fi
 
-      - name: Refresh Contractor Bills counts on an explicit manual run
-        if: github.event_name == 'workflow_dispatch' && steps.google_connection.outputs.configured == 'true'
+      # This conditional push is an explicitly authorized one-time/manual release,
+      # not a periodic refresh and not an ordinary code-commit refresh.
+      - name: Refuse requested Contractor Bills read without Google authentication
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_contractor_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[contractor-manual-read]')) && steps.google_connection.outputs.configured != 'true'
+        run: |
+          echo '::error::Requested Contractor Bills authenticated read but Google identity is not configured.'
+          exit 1
+
+      - name: Read Contractor Bills on explicit manual dispatch or authorized marked push
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_contractor_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[contractor-manual-read]')) && steps.google_connection.outputs.configured == 'true'
         env:
           JP_CONTRACTOR_BILLS_SHEET_ID: ${{ secrets.JP_CONTRACTOR_BILLS_SHEET_ID }}
-          REQUIRE_CONTRACTOR: ${{ inputs.require_contractor_live || false }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -n "$JP_CONTRACTOR_BILLS_SHEET_ID" ]]; then
-            python3 scripts/build_contractor_bills_public.py --output _site/data/contractor-bills-status.v1.json
-            python3 - <<'PY'
+          # Optional secret override is supported. Without it, resolve the exact
+          # single shared LIVE workbook using Drive metadata; no public Sheet ID.
+          python3 scripts/build_contractor_bills_public.py --output _site/data/contractor-bills-status.v1.json
+          python3 - <<'PY'
           import json
           from pathlib import Path
           p=json.loads(Path('_site/data/contractor-bills-status.v1.json').read_text())
           assert p['sourceMode']=='MANUAL_AUTHENTICATED_READ'
-          assert p['approvedClaims']==0
-          assert p['historicalRows']>=0 and p['workRows']>0
+          assert p['revision']=='V000002'
+          assert p['normalizedDataRevision']=='V000001'
+          assert p['sourceTabs']==6 and p['sourceRows']==80
+          assert p['claimRows']==2 and p['workRows']==33
+          assert p['historicalRows']==34 and p['comparisonRows']==5
+          assert p['reviewFlags']==16 and p['approvedClaims']==0
           PY
-            echo 'Contractor Bills: authenticated read-only aggregate refresh validated; no claims certified.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Contractor Bills: verified V000002 snapshot used. Optional source secret is unset.' >> "$GITHUB_STEP_SUMMARY"
-            if [[ "$REQUIRE_CONTRACTOR" == 'true' ]]; then
-              echo '::error::Missing JP_CONTRACTOR_BILLS_SHEET_ID: explicit Contractor Bills authenticated read was required.'
-              exit 1
-            fi
-          fi
+          echo 'Contractor Bills: AUTHENTICATED LIVE GOOGLE SHEETS READ passed; private source remained private, 16 reviews open, zero certified claims.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate staged Pages against notebook privacy and public route boundaries
         run: node scripts/qa-methodology-site.mjs --staged _site
