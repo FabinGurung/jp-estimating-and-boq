@@ -22,7 +22,7 @@ assert.match(page, /V000004 human-first QA/);
 assert.match(page, /no bills approved/);
 assert.match(workflow, /secrets\.JP_VENDOR_BILLS_SHEET_ID/);
 const importer=read('scripts/build_vendor_bills_public.py');
-assert.match(importer, /drive\\.metadata\\.readonly/);
+assert.match(importer, /drive\.metadata\.readonly/);
 assert.match(importer, /select_unique_source/);
 assert.match(importer, /SOURCE_DISCOVERY_NONUNIQUE/);
 assert.match(importer, /SOURCE_DISCOVERY_MISMATCH/);
