@@ -1,56 +1,44 @@
 {
   "schema": "jp.finance.source-tab-metadata.v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "sourceCode": "FN-S01",
-  "spreadsheetId": "1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE",
-  "sourceTitle": "KRISHNA_KUMAR_GUPTA__Payment_to_Project__HUMAN_WORKING__TEMPLATE_v1.1__20261009",
-  "observedOn": "2026-10-21",
+  "spreadsheetId": "PRIVATE_IN_GOOGLE_DRIVE",
+  "sourceTitle": "Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1",
+  "observedOn": "2026-11-17",
   "presentation": "Native Finance header, read-only",
-  "sourceTabCount": 9,
-  "visibleTabCount": 5,
-  "excludedHiddenTabCount": 4,
+  "sourceTabCount": 3,
+  "visibleTabCount": 3,
+  "excludedHiddenTabCount": 0,
   "excludedHiddenTabNamesPublished": false,
   "tabs": [
     {
       "viewId": "payments",
-      "title": "14_bishal_paija",
-      "sheetId": 594059714,
-      "mode": "verified-payment-snapshot"
+      "title": "Bishal Paija",
+      "sheetId": 846338599,
+      "mode": "public-safe-payment-snapshot"
     },
     {
       "viewId": "vendors",
-      "title": "KKG_VENDOR_SUMMARY_AUTO",
-      "sheetId": 770000027,
-      "mode": "derived-vendor-summary"
+      "title": "Total",
+      "sheetId": 1177922624,
+      "mode": "derived-project-and-vendor-summary"
     },
     {
       "viewId": "guide",
-      "title": "00_ENTRY_GUIDE",
-      "sheetId": 1487204034,
-      "mode": "approved-public-guidance"
-    },
-    {
-      "viewId": "context",
-      "title": "00_SITE_CONTEXT",
-      "sheetId": 1785179762,
-      "mode": "approved-public-context"
-    },
-    {
-      "viewId": "enum",
-      "title": "_SYSTEM_ENUM",
-      "sheetId": 1064748325,
-      "mode": "approved-public-definitions"
+      "title": "00_SYSTEM_MEMORY",
+      "sheetId": 256073749,
+      "mode": "approved-public-safe-guidance-only"
     }
   ],
   "limitations": [
-    "No live Google Sheets synchronization",
-    "The guide, context and definitions are approved summaries, not verbatim worksheet mirrors",
-    "Four hidden operational worksheets and private metadata are excluded",
-    "The payment and vendor rows reuse the verified public snapshot; no Google Sheets edits"
+    "No spreadsheet writes or direct browser Google authentication",
+    "Full A7 memory/audit and private workbook URL remain in restricted Google Drive",
+    "Read-only public display uses only authenticated or clearly historical source-projected JSON; never the private native Sheet ID",
+    "The original 20-tab source is archived, not current"
   ],
-  "inventoryStatus": "HISTORICAL_APPROVED_SUBSET_NOT_CURRENT_LIVE_TAB_INVENTORY",
-  "lastObservedLiveTabCount": 12,
-  "lastObservedLiveHiddenTabCount": 5,
-  "lastObservedLiveDateNpt": "2026-10-31",
-  "note": "The original five-source-view published subset belongs to an earlier approved inventory of nine tabs. Current live workbook inventory is twelve tabs (five hidden). Do not interpret the historical sourceTabCount as a live tab count; re-review tab visibility before any new public subset is approved."
+  "inventoryStatus": "CURRENT_CANONICAL_THREE_TAB_PUBLIC_SAFE_SUBSET",
+  "lastObservedLiveTabCount": 3,
+  "lastObservedLiveHiddenTabCount": 0,
+  "lastObservedLiveDateNpt": "2026-11-17",
+  "note": "The former 20-tab V0.5 register is retired under A7. A NEW private V1.1 LIVE Google Sheet has exactly 3 tabs. This public metadata includes no private spreadsheet ID, transaction IDs or private source links; the site renders a verified public snapshot only."
 }
