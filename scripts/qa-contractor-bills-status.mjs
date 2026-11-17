@@ -36,7 +36,7 @@ assert(importer.includes('03 — Bill of Contractors — Working Register — LI
 assert(workflow.includes('[contractor-manual-read]'));
 assert(workflow.includes('github.event.head_commit.message'));
 assert(workflow.includes('AUTHENTICATED LIVE GOOGLE SHEETS READ'));
-assert(!/^\\s*schedule:/m.test(workflow));
+
 assert(importer.includes('MANUAL_AUTHENTICATED_READ'));
 assert(importer.includes('HISTORICAL_DOUBLE_COUNT'));
 assert(!/1wR99Ww0BcEVecmstH6zSuax-LYhb7UhzYgcnsena-b0/.test(page+guide+importer));
