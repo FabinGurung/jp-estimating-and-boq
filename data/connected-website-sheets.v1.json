@@ -1,12 +1,12 @@
 {
   "schema": "jp.website.connected-source-sheets.v1",
-  "version": "V000009",
-  "auditedAtNpt": "2026-11-17",
+  "version": "V000010",
+  "auditedAtNpt": "2026-11-20",
   "repository": "FabinGurung/jp-estimating-and-boq",
   "folderName": "Cost Estimation — Working Google Sheets",
   "folderUrl": "https://drive.google.com/drive/folders/1v0yTowZ8mbTtT7euPgrPeEndFKPPH0IU",
   "owner": "Cost Estimation — original working sheets and source custody",
-  "policy": "Eight original working/reference Cost Estimation Google Sheets are registered: four established authenticated source-import paths, two optional manual-only aggregate readers (Vendor Bills V000004 and Contractor Bills V000002; neither proven authenticated), and two reference/template Sheets. One permanent editable Drive authority per source; no archived duplicate becomes LIVE. GitHub Pages is public-safe counts only, never private invoice rows or payments. No cron, no periodic intervals. Controlled updates use A7 PRE → same live ID → source QA → POST.",
+  "policy": "Nine registered Sheets: four authenticated read paths, two manual aggregate read paths, two references/templates, and one human-maintained LIVE income derivative registered without an Actions importer. Income records and originals stay in private Drive source custody; the public site contains source roles only. No scheduled refresh, no source edits.",
   "records": [
     {
       "ref": "JP-AEC-RATE-MASTER",
@@ -222,6 +222,31 @@
         "historicalPublication": "GitHub Pages push deploys VERIFIED_SNAPSHOT V000002; manual authenticated read is NOT implied",
         "privacy": "Never commit the live Sheet ID, private bills or row-level values. Optional secret override, or exact LIVE-title discovery through Drive metadata with existing viewer-shared WIF identity."
       }
+    },
+    {
+      "ref": "JP-FABIN-INCOME-LIVE",
+      "title": "Fabin Gurung — Income Register — WORKING DERIVATIVE — V000001",
+      "authority": "Existing human-maintained LIVE Google Sheet derived from an archived original Excel; original OneDrive source link and uploaded Excel preserved separately in private source custody. No automatic OneDrive synchronization.",
+      "usedFor": "Fabin Gurung source-reported income for Bishal Paija, independent of payment registers, Vendor Bills and Contractor Bills; no certification or cross-register accounting.",
+      "usagePage": "source-sheets.html#fabinIncomeLive",
+      "publicationStatus": "REGISTERED_LIVE_SOURCE_ONLY (20 November 2026). Two native tabs verified; no GitHub Actions importer or public income totals. Conversion QA HOLD: original Excel cached C4 subtotal differs from the Sheets subtotal by an existing source entry; values and formulas unchanged.",
+      "originalFolder": "03_JP_Cost_Estimation / 02_HUMAN_WORKING_SHEETS / Cost Estimation — Working Google Sheets; private archived Excel in 00_SOURCE_CUSTODY",
+      "kind": "finance_income_live_source",
+      "doesNotImply": "Authenticated GitHub Actions income fetch, OneDrive live sync, certified income, bank confirmation, or any combined finance ledger.",
+      "controlVersion": "V000001",
+      "sourceTabCount": 2,
+      "conversionQa": "HOLD_SUBTOTAL_FILTER_BEHAVIOR_NOT_RECONCILED",
+      "fetchContract": {
+        "mode": "REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT",
+        "importer": null,
+        "readTabs": [
+          "14_bishal_paija",
+          "00_SOURCE_CUSTODY"
+        ],
+        "output": null,
+        "approval": "SOURCE_RECORDED_NOT_CERTIFIED; Excel-to-Sheets subtotal QA unresolved; no edits authorized",
+        "trigger": "Manual only. Future read-only importer requires separately approved access, private source resolution and reconciliation; no cron."
+      }
     }
   ],
   "exclusions": [
@@ -251,7 +276,8 @@
     "17 Nov 2026: Vendor Bills publisher service account granted Viewer on exact original LIVE file; authenticated optional importer now resolves the unique exact title using existing WIF/Drive metadata without new secret. Manual or user-authorized marked push required; ordinary push retains snapshot.",
     "Public source role cards must read the deployed aggregate's sourceMode for Vendor and Contractor; a configured adapter or GitHub success alone does not certify a current authenticated source read.",
     "17 Nov 2026 deployment issue #62: original Fabin workbook currently has 8 tabs (Total, six human project tabs, 00_SYSTEM_MEMORY), while old authenticated script expects removed 00_MANIFEST, 01_PROJECTS, 03_PAYMENT_EVENTS, etc. The earlier authenticated source path is presently incompatible. A Vendor-only manual release may bypass that single failed reader with explicit warning, but other source adapters and Fabin source cells must remain untouched.",
-    "17 Nov 2026: Krishna Kumar Gupta old 20-tab v0.5 working source retired to A7 history after full PRE; new native V1.1 (V000002) has exactly Total / Bishal Paija / 00_SYSTEM_MEMORY. 27 vendor mini-tables, 74 original entries with separate amount/discount/QR; new V000002 PRE/POST archived privately. Estimation reader now discovers unique exact LIVE title and validates schema with WIF; live publication must be independently QA-confirmed."
+    "17 Nov 2026: Krishna Kumar Gupta old 20-tab v0.5 working source retired to A7 history after full PRE; new native V1.1 (V000002) has exactly Total / Bishal Paija / 00_SYSTEM_MEMORY. 27 vendor mini-tables, 74 original entries with separate amount/discount/QR; new V000002 PRE/POST archived privately. Estimation reader now discovers unique exact LIVE title and validates schema with WIF; live publication must be independently QA-confirmed.",
+    "20 Nov 2026 V000010: Ninth income source registered as existing native LIVE working derivative; original Excel and OneDrive URL kept in private Drive custody. The Excel/Sheets SUBTOTAL conversion difference remains an unresolved QA hold. No original or Google Sheet cells edited, no public totals and no authenticated income importer."
   ],
   "operatorPolicy": {
     "mode": "MANUAL_FIRST_NO_CRON",
@@ -268,7 +294,7 @@
     "manualPagesWorkflow": ".github/workflows/cost-estimation-daily-pages-refresh.yml",
     "researchPagesWorkflow": ".github/workflows/deploy-research-pages.yml",
     "amritRatesManualWorkflow": ".github/workflows/amrit-rawat-daily-sheet-sync.yml",
-    "updatedOn": "2026-11-17",
-    "claim": "Current live source-read status must be separately verified: KKG and Amrit authenticated reader earlier pass, Vendor/Contractor explicitly manual, Fabin current importer on HOLD due eight-tab schema drift tracked issue #62. Vendor-only marked deploy bypasses Fabin with explicit warning, not a current Fabin read. No scheduled intervals."
+    "updatedOn": "2026-11-20",
+    "claim": "Current live source-read status must be separately verified: KKG and Amrit authenticated reader earlier pass, Vendor/Contractor explicitly manual, Fabin current importer on HOLD due eight-tab schema drift tracked issue #62. Vendor-only marked deploy bypasses Fabin with explicit warning, not a current Fabin read. No scheduled intervals. Fabin Income is registered LIVE in Drive, but has no Actions importer or income publication; conversion QA remains open."
   }
 }
