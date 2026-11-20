@@ -12,13 +12,13 @@ const status=JSON.parse(read('data/vendor-bills-status.v1.json'));
 const contractorStatus=JSON.parse(read('data/contractor-bills-status.v1.json'));
 
 assert.equal(catalog.schema,'jp.website.connected-source-sheets.v1');
-assert.equal(catalog.version,'V000009');
+assert.equal(catalog.version,'V000010');
 assert.equal(catalog.repository,'FabinGurung/jp-estimating-and-boq');
 assert.equal(catalog.operatorPolicy.mode,'MANUAL_FIRST_NO_CRON');
 assert.equal(catalog.operatorPolicy.automatedIntervalMinutes,null);
 assert.equal(catalog.operatorPolicy.templateTestHarness,'NOT_BUILT');
-assert.equal(catalog.records.length,8);
-assert.equal(new Set(catalog.records.map(x=>x.ref)).size,8);
+assert.equal(catalog.records.length,9);
+assert.equal(new Set(catalog.records.map(x=>x.ref)).size,9);
 
 const feeds=catalog.records.filter(x=>x.fetchContract?.mode.startsWith('AUTHENTICATED'));
 const optional=catalog.records.filter(x=>x.fetchContract?.mode.startsWith('OPTIONAL_'));
@@ -26,6 +26,12 @@ const reference=catalog.records.filter(x=>['REFERENCE_ONLY','TEMPLATE_ONLY_NO_FE
 assert.equal(feeds.length,4);
 assert.equal(optional.length,2);
 assert.equal(reference.length,2);
+const income=catalog.records.filter(x=>x.fetchContract?.mode==='REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT');
+assert.equal(income.length,1);
+assert.equal(income[0].ref,'JP-FABIN-INCOME-LIVE');
+assert.deepEqual(income[0].fetchContract.readTabs,['14_bishal_paija','00_SOURCE_CUSTODY']);
+assert.equal(income[0].fetchContract.importer,null);
+assert.equal(income[0].fetchContract.output,null);
 assert.deepEqual(feeds.map(x=>x.ref).sort(),['JP-FABIN-PAYMENTS-LIVE','RE-AMRIT-QTO-BOQ-LIVE','RE-AMRIT-RATE-LIVE','RE-KKG-FINANCE-LIVE']);
 const vendor=optional[0];
 assert.equal(vendor.ref,'JP-VENDOR-BILLS-LIVE');
@@ -70,14 +76,19 @@ for(const part of ['id="google-sheets-fetched"','id="estimationSourceCount"','id
 }
 assert(html.indexOf('id="google-sheets-fetched"')<html.indexOf('id="vendor-bills-intake"'));
 assert(js.includes("fetch('data/connected-website-sheets.v1.json'"));
-assert(js.includes('data.records.length!==8')&&js.includes('OPTIONAL_')&&js.includes('optional.length!==2'));
+assert(js.includes('data.records.length!==9')&&js.includes('OPTIONAL_')&&js.includes('optional.length!==2')&&js.includes('registered.length!==1'));
 assert(!js.includes('innerHTML')&&!js.includes('localStorage'));
-assert(guide.includes('Eight original and working Sheets')&&guide.includes('17 November 2026'));
+assert(guide.includes('Nine registered working/reference Sheets')&&guide.includes('20 November 2026'));
 assert(guide.includes('Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1'));
 assert(guide.includes('id="estimationSystemToolbox"'));
 assert(guide.includes('Vendor Bills — Working Register — LIVE'));
 assert(guide.includes('03 — Bill of Contractors — Working Register — LIVE'));
 assert(guide.includes('id="contractorBillsManualSource"'));
+assert(guide.includes('id="fabinIncomeLive"'));
+assert(js.includes('LIVE SOURCE · NOT IMPORTED'));
+assert(!/docs\.google\.com\/spreadsheets\/d\//.test(JSON.stringify(income)));
+assert(read('docs/source-intake/FABIN_INCOME_SOURCE_REGISTRATION_V000010_20261120.md').includes('No source cells edited'));
+
 assert(guide.includes('V000004') && guide.includes('NPR 500'));
 
 const privateIds=['1eLxWq8eKgod6i98uxrRqF-xJA85HLScWBPNj0ztUgz4','1R6GoESJmuJ6hFtAc69J8c2gnjgJfxWStjQ1tgeO8i3E',
@@ -131,4 +142,4 @@ assert(read('memory-posters.html').includes('KKG V1.1'));
 assert(deploy.includes('JP_CONTRACTOR_BILLS_SHEET_ID')&&deploy.includes('require_contractor_live'));
 assert(read('scripts/build_contractor_bills_public.py').includes('spreadsheets.readonly'));
 assert(read('scripts/build_fabin_finance_from_google_sheets.py').includes('"V000004"'));
-console.log('ESTIMATION SOURCE MEMORY PASS: 8 owner Sheets / 4 established fetches / 2 optional manual Vendor and Contractor / 2 reference; V000004 Vendor and V000002 Contractor checked fallback snapshots; deployed modes validated separately; no private IDs or cron');
+console.log('ESTIMATION SOURCE MEMORY PASS: 9 registered Sheets / 4 established fetches / 2 manual Vendor and Contractor / 2 references / 1 LIVE income source-only; V000004 Vendor and V000002 Contractor checked fallback snapshots; deployed modes validated separately; no private IDs or cron');
