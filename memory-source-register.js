@@ -16,26 +16,28 @@
     .then(response=>{if(!response.ok)throw new Error('Source map unavailable');return response.json()})
     .then(data=>{
       if(data.schema!=='jp.website.connected-source-sheets.v1'||
-         !Array.isArray(data.records)||data.records.length!==8||
+         !Array.isArray(data.records)||data.records.length!==9||
          data.operatorPolicy?.mode!=='MANUAL_FIRST_NO_CRON')throw new Error('Source map contract mismatch');
       const feeds=data.records.filter(r=>r.fetchContract?.mode?.startsWith('AUTHENTICATED'));
       const optional=data.records.filter(r=>r.fetchContract?.mode?.startsWith('OPTIONAL_'));
       const references=data.records.filter(r=>r.fetchContract?.mode==='REFERENCE_ONLY'||r.fetchContract?.mode==='TEMPLATE_ONLY_NO_FETCH');
-      if(feeds.length!==4||optional.length!==2||references.length!==2)throw new Error('Unexpected source role counts');
-      count.textContent='4 established authenticated paths · 2 manually invoked Vendor/Contractor source readers · 2 reference/template Sheets · deployed source mode checked below · no scheduled interval · catalogue '+data.version;
+      const registered=data.records.filter(r=>r.fetchContract?.mode==='REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT');
+      if(feeds.length!==4||optional.length!==2||references.length!==2||registered.length!==1)throw new Error('Unexpected source role counts');
+      count.textContent='4 established authenticated paths · 2 manually invoked Vendor/Contractor source readers · 2 reference/template Sheets · 1 LIVE income register (not imported) · deployed source mode checked below · no scheduled interval · catalogue '+data.version;
       root.replaceChildren();
       for(const r of data.records){
         const fc=r.fetchContract;
         const optionalFeed=fc.mode.startsWith('OPTIONAL_');
         const active=fc.mode.startsWith('AUTHENTICATED')||optionalFeed;
-        const card=make('article','jp-source-item '+(optionalFeed?'is-optional':active?'is-active':'is-reference'));
+        const registeredLive=fc.mode==='REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT';
+        const card=make('article','jp-source-item '+(optionalFeed?'is-optional':active?'is-active':registeredLive?'is-active':'is-reference'));
         const top=make('div','jp-source-item-head');
-        const tag=make('span','jp-source-item-tag',optionalFeed?'OPTIONAL MANUAL READ':active?'AUTHENTICATED SOURCE PATH':'REFERENCE / TEMPLATE');
+        const tag=make('span','jp-source-item-tag',optionalFeed?'OPTIONAL MANUAL READ':active?'AUTHENTICATED SOURCE PATH':registeredLive?'LIVE SOURCE · NOT IMPORTED':'REFERENCE / TEMPLATE');
         const ref=make('code','jp-source-item-ref',r.ref);
         top.append(tag,ref);
         const title=make('h3','',r.title);
         const role=make('p','jp-source-item-role',r.authority);
-        const output=make('p','jp-source-item-output','Output: '+fc.output);
+        const output=make('p','jp-source-item-output','Output: '+(fc.output||'No public income output'));
         const source=make('p','jp-source-item-outcome','Status: '+r.publicationStatus);
         card.append(top,title,role,output,source);
         // The repository JSON is a verified fallback. Only the DEPLOYED status
@@ -61,7 +63,7 @@
           detail.append(summary,ul);
           card.append(detail);
         }else{
-          card.append(make('p','jp-source-item-detail-text','This workbook is a reference/template. No live Google Sheets importer is configured.'));
+          card.append(make('p','jp-source-item-detail-text',registeredLive?'Human-managed LIVE source, registered without an Actions importer. No income rows or totals published.':'This workbook is a reference/template. No live Google Sheets importer is configured.'));
         }
         const lower=make('p','jp-source-item-caution','Approval: '+fc.approval);
         const link=make('a','jp-source-item-open','Open related Estimation page');
