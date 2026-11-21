@@ -55,3 +55,7 @@ Renaming changes **file/folder display titles only**, not `spreadsheetId`, sheet
 ## Remaining engineering hold
 
 As of the verified 9 November 2026 Google Sheet reads: Amrit measurement, approved rate-selection, BOQ, AOC, running-bill and payment-allocation tabs had **zero** populated project records. No Amrit actual totals are approved, and independent drawing registration/source-quantity QA is still outstanding. The website must communicate this state rather than invent quantities.
+
+## 21 November 2026 cutover: current LIVE source register (V000011)
+
+The preceding 9 November catalogue remains historical design context. Current LIVE roster: **five distinct finance registers plus one permanent general rate library**, six unique Sheet IDs. The three 31 October Amrit/blank-template source files are preserved in 90_ARCHIVE, not deleted. General source rates (14 plinth, 12 trade, 6 daily wages) were incorporated as explicitly unverified source-reference rows in the existing general master, not promoted to canonical approved rate observations. Original versions and finance content are unchanged; the user-approved master restyle and Drive-file title normalization do not reallocate payment ownership. Income Excel filtered-subtotal QA is resolved as display scope, not payment certification.
