@@ -7,8 +7,8 @@
 - A7 Git PRE snapshot ref: `snapshot/pre-income-live-register-v000010-20261120`.
 
 ## Conversion QA
-- Original Excel summary uses `SUBTOTAL(109,...)`, with a cached value different from the effective Google Sheets result after conversion. The difference corresponds to an existing source entry; possible hidden-row/filter behavior is unconfirmed.
-- Status `HOLD_SUBTOTAL_FILTER_BEHAVIOR_NOT_RECONCILED`; no financial approval or certified income inferred.
+- Original Excel summary uses `SUBTOTAL(109,...)`, with a cached value different from the effective Google Sheets result after conversion. The difference corresponds to an existing source entry; the archived original Excel has an active filter hiding Client 14 in the top summary; Google Sheets presents the unfiltered sum, as verified against source row settings and native values.
+- Status `RESOLVED_SOURCE_FILTER_PRESENTATION` (21 Nov 2026): Excel's saved filtered subtotal NPR 32,00,000 excludes the hidden NPR 2,100 Client 14 summary row; unfiltered Google Sheets shows NPR 32,02,100. Underlying 16 transactions and original formulas remain unchanged. No financial certification inferred.
 - No source cells edited. No formulas repaired, rows moved, or existing Google Sheets altered.
 
 ## Repository publication
