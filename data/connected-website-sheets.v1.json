@@ -76,7 +76,7 @@
         ],
         "output": "fabin-payments-public.json",
         "approval": "SOURCE_REPORTED_NOT_APPROVED; 19/19 Basketball/Prithivi overlaps deferred; Hari Baral NPR 500 top summary linked in V000004, source arithmetic now matches but payment not certified",
-        "trigger": "Normal Pages publishing run (not marked Vendor-only or KKG-only) reads the current 8-tab human workbook by unique exact-title. No Sheets writes and no cron."
+        "trigger": "Authorized research Pages publishing runs read the current 8-tab human workbook through unique exact-title Google WIF. No source writes. KKG-only historic release marker remains isolated."
       }
     },
     {
@@ -217,7 +217,7 @@
     "researchPagesWorkflow": ".github/workflows/deploy-research-pages.yml",
     "amritRatesManualWorkflow": ".github/workflows/amrit-rawat-daily-sheet-sync.yml",
     "updatedOn": "2026-11-21",
-    "claim": "Six original LIVE identities preserved. Vendor and Income configured optional authenticated read-only status adapters; current publication requires Actions proof, old vendor snapshot marked historical. No cron or original-data edits."
+    "claim": "Six original LIVE identities preserved. Vendor and Income configured optional authenticated read-only status adapters; current publication requires Actions proof; repaired Fabin now included in marked Vendor+Income releases, old vendor snapshot marked historical. No cron or original-data edits."
   },
   "archivedSources": [
     {
