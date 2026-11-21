@@ -26,7 +26,7 @@ assert.match(importer, /drive\.metadata\.readonly/);
 assert.match(importer, /select_unique_source/);
 assert.match(importer, /SOURCE_DISCOVERY_NONUNIQUE/);
 assert.match(importer, /SOURCE_DISCOVERY_MISMATCH/);
-assert.match(importer, /Vendor Bills — Working Register — LIVE/);
+assert.match(importer, /JP Cost Estimation — Bills — Vendors — LIVE/);
 assert.match(page, /The published status directly below distinguishes/);
 assert.match(page, /id="estimation-system-arsenal"/);
 assert.match(page, /id="krishna-payments-v000005"/);
