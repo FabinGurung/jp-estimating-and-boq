@@ -174,7 +174,7 @@ def derive(sheets, now=None):
 def discover_live(session):
     title = LIVE_TITLE.replace("\\", "\\\\").replace("'", "\\'")
     params = {"q": f"name = '{title}' and trashed = false and mimeType = 'application/vnd.google-apps.spreadsheet'",
-              "fields": "nextPageToken,files(id,name,mimeType)", "page_size": 100}
+              "fields": "nextPageToken,files(id,name,mimeType)", "pageSize": 100}
     reply = session.get("https://www.googleapis.com/drive/v3/files", params=params, timeout=45)
     reply.raise_for_status()
     found = reply.json().get("files", [])
