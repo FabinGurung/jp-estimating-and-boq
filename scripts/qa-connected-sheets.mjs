@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const c=JSON.parse(read('data/connected-website-sheets.v1.json'));
 const reg=JSON.parse(read('site-page-registry.v0.8.json'));
-assert.equal(c.schema,'jp.website.connected-source-sheets.v1');assert.equal(c.version,'V000011');
+assert.equal(c.schema,'jp.website.connected-source-sheets.v1');assert.equal(c.version,'V000013');
 const ids=['JP-AEC-RATE-MASTER','RE-KKG-FINANCE-LIVE','JP-FABIN-PAYMENTS-LIVE','JP-VENDOR-BILLS-LIVE','JP-CONTRACTOR-BILLS-LIVE','JP-FABIN-INCOME-LIVE'];
 assert.deepEqual(c.records.map(x=>x.ref),ids);assert.equal(new Set(ids).size,6);
 assert.equal(c.archivedSources.length,3);
@@ -11,8 +11,8 @@ assert.deepEqual(c.records.map(x=>x.title),["JP Cost Estimation — Rate Library
 assert(c.folderUrl.startsWith('https://drive.google.com/drive/folders/'));
 assert.equal(c.records.filter(x=>x.fetchContract.mode==='REFERENCE_ONLY').length,1);
 assert.equal(c.records.filter(x=>x.fetchContract.mode.startsWith('AUTHENTICATED')).length,2);
-assert.equal(c.records.filter(x=>x.fetchContract.mode.startsWith('OPTIONAL_')).length,2);
-assert.equal(c.records.filter(x=>x.fetchContract.mode==='REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT').length,1);
+assert.equal(c.records.filter(x=>x.fetchContract.mode.startsWith('OPTIONAL_')).length,3);
+assert.equal(c.records.find(x=>x.ref==='JP-FABIN-INCOME-LIVE').fetchContract.mode,'OPTIONAL_AUTHENTICATED_ON_MANUAL_DISPATCH');
 assert.equal(c.records.find(x=>x.ref==='JP-FABIN-INCOME-LIVE').conversionQa,'RESOLVED_SOURCE_FILTER_PRESENTATION');
 for(const x of c.records){assert(x.title&&x.usedFor&&x.publicationStatus&&x.doesNotImply&&x.fetchContract);const p=x.usagePage.split('#')[0];assert(read(p).includes('<main'),'Missing route '+p)}
 const data=JSON.stringify(c);
