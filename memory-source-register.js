@@ -16,14 +16,14 @@
     .then(response=>{if(!response.ok)throw new Error('Source map unavailable');return response.json()})
     .then(data=>{
       if(data.schema!=='jp.website.connected-source-sheets.v1'||
-         !Array.isArray(data.records)||data.records.length!==9||
+         !Array.isArray(data.records)||data.records.length!==6||
          data.operatorPolicy?.mode!=='MANUAL_FIRST_NO_CRON')throw new Error('Source map contract mismatch');
       const feeds=data.records.filter(r=>r.fetchContract?.mode?.startsWith('AUTHENTICATED'));
       const optional=data.records.filter(r=>r.fetchContract?.mode?.startsWith('OPTIONAL_'));
       const references=data.records.filter(r=>r.fetchContract?.mode==='REFERENCE_ONLY'||r.fetchContract?.mode==='TEMPLATE_ONLY_NO_FETCH');
       const registered=data.records.filter(r=>r.fetchContract?.mode==='REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT');
-      if(feeds.length!==4||optional.length!==2||references.length!==2||registered.length!==1)throw new Error('Unexpected source role counts');
-      count.textContent='4 established authenticated paths · 2 manually invoked Vendor/Contractor source readers · 2 reference/template Sheets · 1 LIVE income register (not imported) · deployed source mode checked below · no scheduled interval · catalogue '+data.version;
+      if(feeds.length!==2||optional.length!==2||references.length!==1||registered.length!==1)throw new Error('Unexpected source role counts');
+      count.textContent='2 historical/authenticated payments source paths · 2 manual Vendor/Contractor readers · 1 permanent rate master · 1 LIVE income register (not imported) · deployed source mode checked below · no scheduled interval · catalogue '+data.version;
       root.replaceChildren();
       for(const r of data.records){
         const fc=r.fetchContract;

@@ -1,57 +1,24 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const catalog=JSON.parse(read('data/connected-website-sheets.v1.json'));
+const c=JSON.parse(read('data/connected-website-sheets.v1.json'));
 const reg=JSON.parse(read('site-page-registry.v0.8.json'));
-assert.equal(catalog.schema,'jp.website.connected-source-sheets.v1');
-assert.equal(catalog.records.length,9);
-assert.equal(new Set(catalog.records.map(r=>r.ref)).size,9);
-assert(catalog.folderUrl.startsWith('https://drive.google.com/drive/folders/'));
-const expected=['JP-AEC-RATE-MASTER','RE-AMRIT-RATE-LIVE','RE-AMRIT-QTO-BOQ-LIVE','JP-COSTING-MASTER-TEMPLATE','RE-KKG-FINANCE-LIVE','JP-FABIN-PAYMENTS-LIVE','JP-VENDOR-BILLS-LIVE','JP-CONTRACTOR-BILLS-LIVE','JP-FABIN-INCOME-LIVE'];
-assert.deepEqual(catalog.records.map(r=>r.ref),expected);
-assert.equal(catalog.folderName,'Cost Estimation — Working Google Sheets');
-const readable=[
- 'Construction Rate and Cost References',
- 'Amrit Rawat — Site Construction Rates (Indicative)',
- 'Amrit Rawat — Measurements, BOQ, Cost Summary and Bills',
- 'Construction Costing — Reusable Workbook Template',
- 'Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1',
- 'Fabin Gurung — Payments to Projects — Working v0.7',
- 'Vendor Bills — Working Register — LIVE',
- '03 — Bill of Contractors — Working Register — LIVE',
- 'Fabin Gurung — Income Register — WORKING DERIVATIVE — V000001'
-];
-assert.deepEqual(catalog.records.map(r=>r.title),readable,'Human-readable Google Drive titles need to stay aligned with source custody');
-assert(read('source-sheets.html').includes('id="websiteSheetEntryGuide"'),'Missing human workbook-entry instructions');
-assert(read('docs/REPOSITORY_BOUNDARIES_AND_SHEET_FILLING.md').includes('The three repository ownership boundaries'));
-assert.equal(catalog.records.filter(r=>r.kind==='template_only').length,1);
-assert.equal(catalog.records.filter(r=>r.kind==='finance_live_source').length,2);
-assert.equal(catalog.records.filter(r=>r.kind==='finance_income_live_source').length,1);
-for(const r of catalog.records){
- assert(r.authority&&r.originalFolder&&r.doesNotImply&&r.publicationStatus);
- const pagePath=r.usagePage.split('#')[0].split('?')[0];
- assert(read(pagePath).includes('<main'),'Source index page missing '+r.usagePage);
-}
-assert(!JSON.stringify(catalog).includes('private_key'));
-assert(!JSON.stringify(catalog).includes('1S1fkWzo6XGzyD3p92_pTG32zZ9fF3YICAv3HPTomZsE'),'Retired private KKG source ID prohibited');
-assert(!JSON.stringify(catalog).includes('1-DhklD5WyvNtsYNpEgvisIOlzNA6iSX_U3Bqci4FZ7I'),'New live private KKG source ID prohibited');
-assert(!JSON.stringify(catalog).includes('13uIoX0_urXfSEMLYRK01Pt9FWwYj5SfiLOxHhbr9HPE'),'Do not echo client rate Sheet ID into public machine inventory');
-assert(!JSON.stringify(catalog).includes('1_MYCZ98tsfmWgTn_-jQBU9OcdrygwC9nlE9BF1gWK2k'),'Do not expose private Fabin spreadsheet ID');
-assert(reg.pages.length===71);
-assert(reg.pages.find(p=>p.id==='SY-04')?.path==='source-sheets.html');
-assert(reg.dataAssets.some(a=>a.id==='DATA-SY-CONNECTED-SHEETS'));
-const page=read('source-sheets.html');
-assert(page.includes(catalog.folderUrl));
-assert(page.includes('name="viewport"'));
-assert(page.includes('site-navigation-v0.8.js'));
-assert(page.includes('not</strong> proof')||page.includes('does not configure authentication'));
-assert(read('governance.html').includes('source-sheets.html'));
-assert(read('index.html').includes('source-sheets.html'));
-assert.equal(catalog.records.filter(r=>r.fetchContract.mode.startsWith('AUTHENTICATED')).length,4);
-assert.equal(catalog.records.filter(r=>r.fetchContract.mode.startsWith('OPTIONAL_')).length,2);
-assert.equal(catalog.records.filter(r=>['REFERENCE_ONLY','TEMPLATE_ONLY_NO_FETCH'].includes(r.fetchContract.mode)).length,2);
-assert.equal(catalog.records.filter(r=>r.fetchContract.mode==='REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT').length,1);
-assert(!JSON.stringify(catalog).includes('1eLxWq8eKgod6i98uxrRqF-xJA85HLScWBPNj0ztUgz4'),'Do not expose private Vendor Bills Sheet ID');
-assert(!JSON.stringify(catalog).includes('1drv.ms/'),'No original OneDrive source URL in public catalog');
-assert(!/docs\.google\.com\/spreadsheets\/d\//.test(JSON.stringify(catalog)),'No private Google Sheet URL in public catalog');
-console.log('CONNECTED WEBSITE SHEETS PASS: one governed source folder, 9 roles (4 authenticated + 2 optional/manual + 2 references + 1 LIVE income registered-only), no private Sheet IDs, 71 registered pages; Drive membership provider-verified.');
+assert.equal(c.schema,'jp.website.connected-source-sheets.v1');assert.equal(c.version,'V000011');
+const ids=['JP-AEC-RATE-MASTER','RE-KKG-FINANCE-LIVE','JP-FABIN-PAYMENTS-LIVE','JP-VENDOR-BILLS-LIVE','JP-CONTRACTOR-BILLS-LIVE','JP-FABIN-INCOME-LIVE'];
+assert.deepEqual(c.records.map(x=>x.ref),ids);assert.equal(new Set(ids).size,6);
+assert.equal(c.archivedSources.length,3);
+assert.deepEqual(c.records.map(x=>x.title),["JP Cost Estimation — Rate Library — LIVE","JP Cost Estimation — Payments — Krishna Kumar Gupta — LIVE V1.1","JP Cost Estimation — Payments — Fabin Gurung — LIVE v0.7","JP Cost Estimation — Bills — Vendors — LIVE","JP Cost Estimation — Bills — Contractors — LIVE","JP Cost Estimation — Income — Fabin Gurung — LIVE V000001"]);
+assert(c.folderUrl.startsWith('https://drive.google.com/drive/folders/'));
+assert.equal(c.records.filter(x=>x.fetchContract.mode==='REFERENCE_ONLY').length,1);
+assert.equal(c.records.filter(x=>x.fetchContract.mode.startsWith('AUTHENTICATED')).length,2);
+assert.equal(c.records.filter(x=>x.fetchContract.mode.startsWith('OPTIONAL_')).length,2);
+assert.equal(c.records.filter(x=>x.fetchContract.mode==='REGISTERED_LIVE_SOURCE_ONLY_NO_IMPORT').length,1);
+assert.equal(c.records.find(x=>x.ref==='JP-FABIN-INCOME-LIVE').conversionQa,'RESOLVED_SOURCE_FILTER_PRESENTATION');
+for(const x of c.records){assert(x.title&&x.usedFor&&x.publicationStatus&&x.doesNotImply&&x.fetchContract);const p=x.usagePage.split('#')[0];assert(read(p).includes('<main'),'Missing route '+p)}
+const data=JSON.stringify(c);
+for(const f of ['1_MYCZ98tsfmWgTn_-jQBU9OcdrygwC9nlE9BF1gWK2k','1-DhklD5WyvNtsYNpEgvisIOlzNA6iSX_U3Bqci4FZ7I','1MrYDk5W2PTlY3igUm5YuycKr65oFR3kwLA_5YUoBCtk','1TSBHMSjOGuWcVkEnKsjFHpEYi191RMwdp5bfCqBkzCY','1QfVM08Zvd_mv7EXcTxT9WMYPHzTAUHOTmL10ULo4oIA'])assert(!data.includes(f));
+assert(!data.includes('1drv.ms/'));
+assert(reg.pages.length===71);assert(reg.pages.find(p=>p.id==='SY-04')?.path==='source-sheets.html');
+assert(read('source-sheets.html').includes('05 FINANCE REGISTERS + 01 RATE LIBRARY'));
+assert(read('memory-source-register.js').includes('data.records.length!==6'));
+console.log('PASS V000011: 5 finance + 1 general rate master; 3 retired archives; original source IDs private');

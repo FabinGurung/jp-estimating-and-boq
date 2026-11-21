@@ -61,7 +61,7 @@ def derive(sheets):
     return validate(result)
 
 
-LIVE_TITLE = "Vendor Bills — Working Register — LIVE"
+LIVE_TITLE = "JP Cost Estimation — Bills — Vendors — LIVE"
 
 
 def select_unique_source(payload):
