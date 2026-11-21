@@ -16,7 +16,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "finance-public-snapshot.json"
-LIVE_TITLE = "Krishna Kumar Gupta — Payments to Projects — LIVE — V1.1"
+LIVE_TITLE = "JP Cost Estimation — Payments — Krishna Kumar Gupta — LIVE V1.1"
 TAB_NAMES = ("Total", "Bishal Paija", "00_SYSTEM_MEMORY")
 SOURCE_VERSION = "V1.1 / V000002"
 DATE = re.compile(r"^\d{4}(?:_\d{2}_\d{2}|-\d{2}-\d{2}|/\d{2}/\d{2})$")
