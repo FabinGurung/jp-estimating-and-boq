@@ -14,6 +14,10 @@ on:
         description: Fail unless optional Contractor Bills authenticated read succeeds (requires source secret and Google sheet access)
         type: boolean
         default: false
+      require_income_live:
+        description: Explicitly read and validate the private income source, publishing integrity status without amounts
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -61,6 +65,8 @@ jobs:
           node --check contractor-bills-status.js
           node scripts/qa-contractor-bills-status.mjs
           python3 scripts/build_contractor_bills_public.py --check
+          python3 scripts/build_vendor_bills_current_v2.py --self-test
+          python3 scripts/build_income_status_from_google_sheets.py --self-test
           node scripts/qa-all-site-routes.mjs
           node scripts/qa-cardinal-layout.mjs
           node scripts/qa-amrit-source-version.mjs
@@ -206,19 +212,23 @@ jobs:
           set -euo pipefail
           # Secret is optional; the existing publishing service account has Viewer
           # and can locate the single exact-titled LIVE sheet through Drive metadata.
-          python3 scripts/build_vendor_bills_public.py --output _site/data/vendor-bills-status.v1.json
+          python3 scripts/build_vendor_bills_current_v2.py --output _site/data/vendor-bills-status.v2.json
           python3 - <<'PY'
-          import json
+          import json,re
           from pathlib import Path
-          p=json.loads(Path('_site/data/vendor-bills-status.v1.json').read_text())
-          assert p['schema']=='jp.vendor-bills-status.v1'
+          p=json.loads(Path('_site/data/vendor-bills-status.v2.json').read_text())
+          assert p['schema']=='jp.vendor-bills-status.v2'
           assert p['sourceMode']=='MANUAL_AUTHENTICATED_READ'
-          assert p['revision']=='V000004'
-          assert p['sourceTabs']==35 and p['sourceRows']==1895
+          assert re.fullmatch(r'V[0-9]{6}',p['revision'])
+          assert p['originalSourceTabsDeclared']==35
+          assert p['machineRows']==1406
           assert p['billRows']==259 and p['detailRows']==930
-          assert p['comparisonRows']==46 and p['reviewFlags']==509
+          assert p['summaryRows']==109 and p['comparisonRows']==46
+          assert p['projectCrosswalkRows']==32 and p['vendorCrosswalkRows']==30
+          assert p['reviewFlags'] is None and p['financialApproval']=='NOT_VERIFIED'
+          assert p['privacy']['publishedEntryRows'] == 0 if 'publishedEntryRows' in p['privacy'] else p['privacy']['transactionRowsPublished'] == 0
           PY
-          echo 'Vendor Bills: AUTHENTICATED LIVE GOOGLE SHEETS READ passed; 509 review flags remain open and no invoice payments are certified.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Vendor Bills: current authenticated consolidated six-section read validated; historic 1,895/509 review counts NOT reasserted; bill approvals remain unverified.' >> "$GITHUB_STEP_SUMMARY"
 
       # This conditional push is an explicitly authorized one-time/manual release,
       # not a periodic refresh and not an ordinary code-commit refresh.
@@ -251,6 +261,32 @@ jobs:
           assert p['reviewFlags']==16 and p['approvedClaims']==0
           PY
           echo 'Contractor Bills: AUTHENTICATED LIVE GOOGLE SHEETS READ passed; private source remained private, 16 reviews open, zero certified claims.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Refuse requested income status read without Google authentication
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_income_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[income-manual-read]')) && steps.google_connection.outputs.configured != 'true'
+        run: |
+          echo '::error::Requested income status read requires Google WIF.'
+          exit 1
+
+      - name: Read source-reconciled Fabin Income without public amounts
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_income_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[income-manual-read]')) && steps.google_connection.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          python3 scripts/build_income_status_from_google_sheets.py --output _site/data/income-register-status.v1.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('_site/data/income-register-status.v1.json').read_text())
+          assert p['schema']=='jp.fabin-income.status.v1'
+          assert p['sourceMode']=='MANUAL_AUTHENTICATED_READ'
+          assert p['sourceVersion']=='V000001'
+          assert p['sourceTabCount']==2
+          assert p['sourceArithmeticReconciled'] is True
+          assert p['financialCertification']=='NOT_VERIFIED'
+          assert p['privacy']['publishedEntryRows']==0
+          assert p['privacy']['publishedIncomeAmounts']==0
+          PY
+          echo 'Fabin Income: authenticated 2-tab Google source read, no public amounts, Excel filtered-subtotal QA resolved, finance certification not inferred.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate staged Pages against notebook privacy and public route boundaries
         run: node scripts/qa-methodology-site.mjs --staged _site
