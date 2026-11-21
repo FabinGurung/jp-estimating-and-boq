@@ -57,7 +57,7 @@ if(i>=0){
   assert(Math.abs(a.normalizedEventsGrandTotalNpr-a.sourceDeclaredGrandTotalNpr-a.reconciliationDifferenceNpr)<.01);
   assert.equal(a.sourceVersion,'v0.7');
   assert.equal(a.normalizedEventVersion,'native-8tab-adapter');
-  assert(Math.abs(a.reconciliationDifferenceNpr)<.01,'Current human original's five project summaries must reconcile within one paisa');
+  assert(Math.abs(a.reconciliationDifferenceNpr)<.01,'Current human source five project summaries must reconcile within one paisa');
   assert(a.projects.every(p=>p.reconciliation==='ARITHMETIC_MATCH_ONLY'));
   assert(a.exclusions.some(e=>e.includes('Basketball')));
   console.log('FABIN LIVE STAGED QA PASS: authenticated normalized source; 5 unverified project aggregates; no raw rows/party names/private source IDs');
