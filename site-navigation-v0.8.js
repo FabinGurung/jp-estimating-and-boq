@@ -14,6 +14,7 @@ const links=[
 ['finance','Finance','finance.html']
 ];
 const extras=[
+['field','Field Resources','field.html'],
 ['reference','References & Docs','reference.html'],
 ['literature','Research & Standards','literature-review.html'],
 ['system','System & Governance','governance.html'],
@@ -25,7 +26,7 @@ function department(){
 if(path==='index.html')return 'home';
 if(path==='rate-workbench.html')return 'rates';
 if(path.startsWith('projects/')||path==='projects.html')return 'projects';
-if(path==='measurements-boq.html'||path==='calculation-workspace.html')return 'measurements';
+if(path==='field.html'||path==='measurements-boq.html'||path==='calculation-workspace.html')return 'measurements';
 if(path==='finance.html'||path==='finance-dashboard.html'||path==='field-expense-guide.html')return 'finance';
 if(path==='reference.html'||path==='memory-posters.html'||path==='literature-review.html')return 'reference';
 if(path==='governance.html'||path==='system-map.html'||path.startsWith('custody/'))return 'system';
@@ -150,7 +151,7 @@ if(jumps===0){
 east.append(jumpNav);
 const sourceNav=document.createElement('nav');sourceNav.className='jp-rail-links';
 sourceNav.setAttribute('aria-label','Source and page index');
-for(const [label,href] of [['Original Sheets','source-sheets.html'],['All 71 pages','site-map.html']]){
+for(const [label,href] of [['Original Sheets','source-sheets.html'],['All pages','site-map.html']]){
  const a=document.createElement('a');a.className='jp-onpage';a.href=url(href);a.textContent=label;sourceNav.append(a);
 }
 east.append(sourceNav,axis('Original Google Sheets and CAD files own evidence. Pages is read-only.','rail-micro'));

@@ -1,3 +1,7 @@
+## Field Resources — 22 November 2026
+
+[Field Resources](field.html) provides the original Google Sheets for materials, daily work, measurements, attendance and field expenses. Reviewed measurements, material use and crew inputs can inform unit-rate analysis. Company Sheets retain their native formats and access controls. The historical Wage List 11 Payment publication uses the approved historical source and dedicated read-only build. Project maps and notification rules are maintained by Site Operations. The Desk Resources site publishes finalized client and engineering files from the Project Resources catalogue.
+
 ## A9 Memory Wall · verified checkpoint recorded 8 November 2026
 
 The public [Memory Wall](memory-posters.html#memory-status) pins the 7 November 2026 source-backed project status in a memorable 60-second summary, with its [machine-readable V000001 checkpoint](data/jp-cost-memory-wall.v1.json). Existing memory/reference posters are preserved and searchable. The governance directory and homepage link to this wall.
