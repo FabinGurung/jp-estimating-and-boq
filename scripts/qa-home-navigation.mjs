@@ -22,7 +22,7 @@ assert(get('finance.html').includes('<body class="jp-finance-page"'));
 assert(get('finance-dashboard.html').includes('<body class="jp-finance-dashboard-page"'));
 const css=get('site-theme-v0.8.css');assert(css.includes('.jp-finance-page > .sidebar')&&css.includes('.jp-finance-dashboard-page > .site-header'));
 assert(get('scripts/qa-amrit-source-version.mjs').includes('KEEP_CURRENT_SNAPSHOT'));
-assert(get('scripts/validate-site-page-registry.mjs').includes("pages.length,71"));
+assert(get('scripts/validate-site-page-registry.mjs').includes("pages.length,72"));
 assert(home.includes('href="source-sheets.html"') && get('governance.html').includes('href="source-sheets.html"'));
 assert(get('source-sheets.html').includes('id="websiteSheetDirectory"'));
 assert(pages.find(x=>x.id==='SY-04')?.path==='source-sheets.html');
@@ -38,7 +38,7 @@ assert.equal(memory.schema,'jp.cost-estimation.memory-wall.v1');
 assert.equal(memory.snapshot_id,'A9-JP-EST-MEMORY-V000001');
 assert.equal(memory.lifecycle,'historical_verified_checkpoint_not_live_telemetry');
 assert.equal(memory.evidence_as_of,'2026-11-07');
-assert.equal(facts.site_pages,pages.length);
+assert.equal(facts.site_pages,71); // Historical checkpoint from 7 November.
 // This Memory Wall is frozen as a 7 Nov historical checkpoint; its five source roles
 // must not be silently rewritten when a later sixth Fabin working source is registered.
 assert.equal(facts.original_sheets,5);

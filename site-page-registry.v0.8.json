@@ -835,6 +835,42 @@
       ]
     },
     {
+      "id": "BQ-03",
+      "department": "BQ",
+      "parent": "BQ-01",
+      "path": "field.html",
+      "title": "Field Resources",
+      "kind": "directory",
+      "status": "published",
+      "navigation": "secondary",
+      "sections": [
+        {
+          "id": "BQ-03.S01",
+          "domId": "materials",
+          "title": "Materials"
+        },
+        {
+          "id": "BQ-03.S02",
+          "domId": "measurements",
+          "title": "Measurements"
+        },
+        {
+          "id": "BQ-03.S03",
+          "domId": "attendance",
+          "title": "Attendance"
+        },
+        {
+          "id": "BQ-03.S04",
+          "domId": "historical-payments",
+          "title": "Historical payments"
+        }
+      ],
+      "keyDependencies": [
+        "field-resources.css",
+        "field-payments.js"
+      ]
+    },
+    {
       "id": "RF-01",
       "department": "RF",
       "parent": null,

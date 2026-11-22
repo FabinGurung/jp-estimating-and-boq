@@ -67,6 +67,8 @@ jobs:
           python3 scripts/build_contractor_bills_public.py --check
           python3 scripts/build_vendor_bills_current_v2.py --self-test
           python3 scripts/build_income_status_from_google_sheets.py --self-test
+          python3 scripts/test_clean_payment_publication.py
+          node --check field-payments.js
           node scripts/qa-all-site-routes.mjs
           node scripts/qa-cardinal-layout.mjs
           node scripts/qa-amrit-source-version.mjs
@@ -279,6 +281,10 @@ jobs:
           assert p['privacy']['publishedIncomeAmounts']==0
           PY
           echo 'Fabin Income: authenticated 2-tab Google source read, no public amounts, Excel filtered-subtotal QA resolved, finance certification not inferred.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish the reviewed historical field payments
+        if: steps.google_connection.outputs.configured == 'true'
+        run: python3 scripts/publish_field_payments.py --output _site
 
       - name: Validate staged Pages against notebook privacy and public route boundaries
         run: node scripts/qa-methodology-site.mjs --staged _site

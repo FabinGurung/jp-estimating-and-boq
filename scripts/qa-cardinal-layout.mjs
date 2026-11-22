@@ -7,9 +7,9 @@ const read=p=>readFileSync(path.join(root,p),'utf8');
 const nav=read('site-navigation-v0.8.js');
 const css=read('site-cardinal-v1.css');
 const registry=JSON.parse(read('site-page-registry.v0.8.json'));
-assert.equal(registry.pages.length,71,'The redesign cannot drop or duplicate any legacy page');
-assert.equal(new Set(registry.pages.map(p=>p.id)).size,71);
-assert.equal(new Set(registry.pages.map(p=>p.path)).size,71);
+assert.equal(registry.pages.length,72,'The redesign cannot drop or duplicate any legacy page');
+assert.equal(new Set(registry.pages.map(p=>p.id)).size,72);
+assert.equal(new Set(registry.pages.map(p=>p.path)).size,72);
 for(const p of registry.pages){
  const html=read(p.path);
  assert(html.includes('site-navigation-v0.8.js')&&html.includes('site-theme-v0.8.css'),'Missing site shell: '+p.path);
@@ -34,4 +34,4 @@ assert(nav.includes("const root=new URL('.',script?.src||location.href)"),'Neste
 assert(nav.includes("document.querySelector('main')"),'No page-specific hardcoded main dependency');
 assert(nav.includes('if(document.getElementById('),'Shared shell must be idempotent');
 assert(existsSync(path.join(root,'data/connected-website-sheets.v1.json')));
-console.log('CARDINAL UX PASS: 71 stable routes; N/W/E/S, mobile rails, keyboard focus, provenance links and existing data contracts preserved.');
+console.log('CARDINAL UX PASS: 72 stable routes; N/W/E/S, mobile rails, keyboard focus, provenance links and existing data contracts preserved.');

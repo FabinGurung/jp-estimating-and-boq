@@ -18,7 +18,7 @@ for(const x of c.records){assert(x.title&&x.usedFor&&x.publicationStatus&&x.does
 const data=JSON.stringify(c);
 for(const f of ['1_MYCZ98tsfmWgTn_-jQBU9OcdrygwC9nlE9BF1gWK2k','1-DhklD5WyvNtsYNpEgvisIOlzNA6iSX_U3Bqci4FZ7I','1MrYDk5W2PTlY3igUm5YuycKr65oFR3kwLA_5YUoBCtk','1TSBHMSjOGuWcVkEnKsjFHpEYi191RMwdp5bfCqBkzCY','1QfVM08Zvd_mv7EXcTxT9WMYPHzTAUHOTmL10ULo4oIA'])assert(!data.includes(f));
 assert(!data.includes('1drv.ms/'));
-assert(reg.pages.length===71);assert(reg.pages.find(p=>p.id==='SY-04')?.path==='source-sheets.html');
+assert(reg.pages.length===72);assert(reg.pages.find(p=>p.id==='SY-04')?.path==='source-sheets.html');
 assert(read('source-sheets.html').includes('05 FINANCE REGISTERS + 01 RATE LIBRARY'));
 assert(read('memory-source-register.js').includes('data.records.length!==6'));
 console.log('PASS V000011: 5 finance + 1 general rate master; 3 retired archives; original source IDs private');
