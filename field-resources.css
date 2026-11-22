@@ -65,5 +65,11 @@
 .field-main {max-width: 74rem; margin: 0 auto; padding: 1.25rem; }
 .field-main a { color: var(--jp-link, #175347); }
 .field-main .payment-table-wrap { overflow-x: auto; }
-.field-main .field-page-grid { display: block; }
+.field-main { --deep: #1d523a; --line: #d5e2da; --dim: #425c50; }
+.field-page-grid { grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr); }
+@media (max-width: 800px) {
+  .field-page-grid { display: flex; flex-direction: column; }
+  .field-toc { max-width: 100%; }
+  .field-schema th, .field-schema td { padding: .5rem; }
+}
 .field-main .payment-controls select { max-width: 100%; }

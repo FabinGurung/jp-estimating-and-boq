@@ -126,13 +126,29 @@ jobs:
         with:
           credentials_json: ${{ secrets.JP_GOOGLE_CREDENTIALS }}
 
-      - name: Refresh public finance data directly from the LIVE Sheet
+      - name: Install Google Sheets reader dependencies
         if: steps.google_connection.outputs.configured == 'true'
+        run: python3 -m pip install 'google-auth>=2,<3' 'requests>=2,<3'
+
+      - name: Refresh public finance data directly from the LIVE Sheet
+        if: steps.google_connection.outputs.configured == 'true' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[field-resource-cutover]'))
         run: |
-          python3 -m pip install 'google-auth>=2,<3' 'requests>=2,<3'
           python3 scripts/build_finance_from_google_sheets.py
           node scripts/validate-finance-public.mjs
           echo 'KKG Finance: AUTHENTICATED LIVE V1.1 THREE-TAB FETCH; 27 source vendor mini-tables/rollups and unique entry IDs validated. Original payment evidence remains private; no payments certified.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Carry forward the last deployed KKG snapshot for the field cutover
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[field-resource-cutover]')
+        run: |
+          set -euo pipefail
+          # This release migrates Field Resources. Keep the exact previously published
+          # KKG snapshot and its original date while its independent reader is repaired.
+          curl --fail --silent --show-error --max-time 30 --retry 2 \
+            https://fabingurung.github.io/jp-estimating-and-boq/finance-public-snapshot.json \
+            --output finance-public-snapshot.json
+          echo '3471c3b5446f2df9c441e215be17ae8dddcbd7e87c594072e96397386704f31a  finance-public-snapshot.json' | sha256sum --check --status
+          node scripts/validate-finance-public.mjs
+          echo 'KKG snapshot preserved at its existing 17 November 2026 revision. This cutover did not refresh the KKG workbook.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Stage static Pages files excluding Google credentials
         run: |
@@ -285,6 +301,9 @@ jobs:
       - name: Publish the reviewed historical field payments
         if: steps.google_connection.outputs.configured == 'true'
         run: python3 scripts/publish_field_payments.py --output _site
+      - name: Require historical Payment readback for the field cutover
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[field-resource-cutover]')
+        run: test -s _site/field-payments.json
 
       - name: Validate staged Pages against notebook privacy and public route boundaries
         run: node scripts/qa-methodology-site.mjs --staged _site
