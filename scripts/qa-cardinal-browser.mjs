@@ -44,6 +44,15 @@ try {
     await page.locator('#jp-site-footer').waitFor({state:'attached',timeout:15000});
     await page.locator('#jp-cardinal-theme').waitFor({state:'attached',timeout:5000});
     await page.waitForFunction(()=>document.querySelector('#jp-cardinal-theme')?.sheet?.cssRules?.length>0,{timeout:8000}).catch(()=>{});
+    if (name === 'sheets' && mode === 'published-live') {
+      await page.getByText('Last verified Google Drive read', {exact: false}).waitFor({timeout:15000});
+      await page.locator('#liveRateRows tr').first().waitFor({state:'attached',timeout:15000});
+      assert.equal(await page.locator('#sourceSyncBbs li').count(), 4);
+      assert.equal(await page.locator('#sourceSyncFinance li').count(), 5);
+      assert.ok(await page.locator('#sourceSyncGuide p').count() > 0);
+      await page.locator('#liveIndicativeRates summary').click();
+      assert.ok(await page.locator('#liveRateRows tr').first().isVisible());
+    }
     const metrics=await page.evaluate(()=>{
      const box=id=>{
       const el=document.getElementById(id);

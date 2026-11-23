@@ -88,7 +88,8 @@ def publish_pdf_rates(session, workbook, site):
             key = (kind, identity)
             if kind not in ('entries', 'candidates') or not identity or key in observed:
                 raise SourceHold('Invalid or duplicate PDF rate identity')
-            observed[key] = (value, page)
+            # Values API uses an empty string for an interior blank cell.
+            observed[key] = (value, None if page == '' else page)
         for kind in ('entries', 'candidates'):
             for path in source[kind]:
                 records = load_records(ROOT / path)
