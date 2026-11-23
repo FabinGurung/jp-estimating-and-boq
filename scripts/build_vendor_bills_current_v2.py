@@ -50,7 +50,7 @@ def derive(dataset,now=None):
     directory=dataset.get("directory",[])
     if not directory or [value(directory,0,k) for k in range(5)]!=["SECTION_ID","SECTION_NAME","START_ROW","END_ROW","RECORD_COUNT"]:
         raise SourceError("REGISTRY_SECTION_DIRECTORY_MISSING")
-    sections={value(row,0):row for row in directory[1:] if row and value(row,0)}
+    sections={value([row],0):row for row in directory[1:] if row and value([row],0)}
     out={}
     for field,(section,name,start,end,count,unique) in SECTIONS.items():
         if section not in sections:

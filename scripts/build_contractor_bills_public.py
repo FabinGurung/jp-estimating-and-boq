@@ -116,8 +116,10 @@ def derive(sheets):
     if len(source) < 40 or len(source[1]) < 2 or len(source[39]) < 3:
         raise ValueError("PRIMARY_SOURCE_RANGE")
     primary_amount = sum((amount(r[7]) for r in works), Decimal("0"))
-    if (primary_amount != amount(claims[0][5]) or primary_amount != amount(source[1][1])
-            or primary_amount != amount(source[39][2])):
+    # Compare source totals at paisa precision after summing the original
+    # values. Sheets can return formula results with fractional binary noise.
+    totals = [primary_amount, amount(claims[0][5]), amount(source[1][1]), amount(source[39][2])]
+    if any(not value.is_finite() for value in totals) or len({value.quantize(Decimal("0.01")) for value in totals}) != 1:
         raise ValueError("PRIMARY_SOURCE_AMOUNT")
     if amount(claims[1][5]) != 0:
         raise ValueError("SECONDARY_SOURCE_AMOUNT")
@@ -188,6 +190,7 @@ def read_live(source_id):
     credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{source_id}/values:batchGet"
     params = [("ranges", f"'{name}'!{bounds}") for name, bounds in READ_RANGES.items()]
+    params.append(("valueRenderOption", "UNFORMATTED_VALUE"))
     session = AuthorizedSession(credentials)
     reply = session.get(url, params=params, timeout=30)
     if not reply.ok:
