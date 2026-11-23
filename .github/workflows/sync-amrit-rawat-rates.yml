@@ -1,87 +1,20 @@
-name: Project assumptions · Amrit Rawat Sheet to Pages snapshot
-# Reusable job called by the default-branch scheduler; research branch is the
-# sole website source. Google service account obtains SHORT-LIVED tokens via WIF.
+name: Amrit Rawat — Validate archived rate presentation
+
 on:
   workflow_call:
   workflow_dispatch:
-  # One-time source proof on changes to THIS workflow in the publishing branch.
-  # The job publishes no commit unless the LIVE sheet's numbered version advances.
-  # This path-only trigger cannot recurse on ordinary derived JSON commits.
-  push:
-    branches:
-      - research/open-estimation-engine-v0.1
-    paths:
-      - .github/workflows/sync-amrit-rawat-rates.yml
 
 permissions:
-  contents: write
-  id-token: write
-
-concurrency:
-  group: amrit-rawat-source-assumptions
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  refresh-project-assumptions:
+  validate-archived-rate-presentation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: research/open-estimation-engine-v0.1
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Validate last published public-only project assumptions
-        run: |
-          node scripts/sync-amrit-rawat-rates.mjs --validate-current
-          node scripts/qa-amrit-source-version.mjs
-
-      - name: Inspect authorized source connection without revealing IDs
-        id: access
-        env:
-          SOURCE_ID: ${{ secrets.AMRIT_RAWAT_SHEET_ID || '13uIoX0_urXfSEMLYRK01Pt9FWwYj5SfiLOxHhbr9HPE' }}
-          WIF_PROVIDER: ${{ vars.JP_GOOGLE_WORKLOAD_IDENTITY_PROVIDER || 'projects/247425973072/locations/global/workloadIdentityPools/jp-pages-github/providers/github' }}
-          SERVICE_ACCOUNT: ${{ vars.JP_GOOGLE_SERVICE_ACCOUNT || 'jp-pages-publisher@just-a-project-5007.iam.gserviceaccount.com' }}
-        shell: bash
-        run: |
-          if [[ -n "$SOURCE_ID" && -n "$WIF_PROVIDER" && -n "$SERVICE_ACCOUNT" ]]; then
-            echo 'connected=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'connected=false' >> "$GITHUB_OUTPUT"
-            echo '::warning::AMRIT RAWAT: source fetch skipped. This job is validation-only, NOT a successfully refreshed rate Sheet.'
-            echo 'AMRIT RAWAT: NOT AUTHENTICATED / NOT REFRESHED. Existing dated static snapshot retained. Missing source ID secret or authorized keyless Workload Identity configuration.' >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Authenticate through existing keyless Google identity
-        if: steps.access.outputs.connected == 'true'
-        uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: ${{ vars.JP_GOOGLE_WORKLOAD_IDENTITY_PROVIDER || 'projects/247425973072/locations/global/workloadIdentityPools/jp-pages-github/providers/github' }}
-          service_account: ${{ vars.JP_GOOGLE_SERVICE_ACCOUNT || 'jp-pages-publisher@just-a-project-5007.iam.gserviceaccount.com' }}
-          create_credentials_file: true
-          export_environment_variables: true
-
-      - name: Derive from original one-ID Google Sheet read-only
-        if: steps.access.outputs.connected == 'true'
-        env:
-          AMRIT_RAWAT_SHEET_ID: ${{ secrets.AMRIT_RAWAT_SHEET_ID || '13uIoX0_urXfSEMLYRK01Pt9FWwYj5SfiLOxHhbr9HPE' }}
-        run: |
-          python3 -m pip install 'google-auth>=2,<3' 'requests>=2,<3'
-          node scripts/sync-amrit-rawat-rates.mjs
-
-      - name: Verify and commit only version-approved derived data
-        if: steps.access.outputs.connected == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/sync-amrit-rawat-rates.mjs --validate-current
-          git add -- projects/rohini/ward-14/amrit-rawat/rates.public.json projects/rohini/ward-14/amrit-rawat/publication-history.jsonl
-          if git diff --cached --quiet; then
-            echo 'AMRIT RAWAT: source authenticated; public snapshot unchanged, no publish commit.' >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'data(project/rohini/amrit-rawat): verified source version'
-          git push origin HEAD:research/open-estimation-engine-v0.1
-          echo 'AMRIT RAWAT: authenticated source version checked, changes committed; Pages push deploy triggered.' >> "$GITHUB_STEP_SUMMARY"
+          persist-credentials: false
+      - run: node scripts/sync-amrit-rawat-rates.mjs --validate-current
+      - run: |
+          echo 'The standalone Amrit rate source is archived. Current rates are refreshed through the Estimating & BOQ publishing workflow.' >> "$GITHUB_STEP_SUMMARY"
