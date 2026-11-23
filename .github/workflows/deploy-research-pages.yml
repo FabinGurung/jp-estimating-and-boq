@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       require_live_sheets:
-        description: Fail if authenticated Sheets refresh cannot run
+        description: Fail if authenticated Google source refresh cannot run
         type: boolean
         default: true
       require_contractor_live:
@@ -130,25 +130,14 @@ jobs:
         if: steps.google_connection.outputs.configured == 'true'
         run: python3 -m pip install 'google-auth>=2,<3' 'requests>=2,<3'
 
-      - name: Refresh public finance data directly from the LIVE Sheet
-        if: steps.google_connection.outputs.configured == 'true' && !(github.event_name == 'push' && contains(github.event.head_commit.message, '[field-resource-cutover]'))
-        run: |
-          python3 scripts/build_finance_from_google_sheets.py
-          node scripts/validate-finance-public.mjs
-          echo 'KKG Finance: AUTHENTICATED LIVE V1.1 THREE-TAB FETCH; 27 source vendor mini-tables/rollups and unique entry IDs validated. Original payment evidence remains private; no payments certified.' >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Carry forward the last deployed KKG snapshot for the field cutover
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[field-resource-cutover]')
+      - name: Preserve the reviewed historical KKG payment display
         run: |
           set -euo pipefail
-          # This release migrates Field Resources. Keep the exact previously published
-          # KKG snapshot and its original date while its independent reader is repaired.
           curl --fail --silent --show-error --max-time 30 --retry 2 \
             https://fabingurung.github.io/jp-estimating-and-boq/finance-public-snapshot.json \
             --output finance-public-snapshot.json
           echo '3471c3b5446f2df9c441e215be17ae8dddcbd7e87c594072e96397386704f31a  finance-public-snapshot.json' | sha256sum --check --status
           node scripts/validate-finance-public.mjs
-          echo 'KKG snapshot preserved at its existing 17 November 2026 revision. This cutover did not refresh the KKG workbook.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Stage static Pages files excluding Google credentials
         run: |
@@ -159,67 +148,30 @@ jobs:
             --exclude='private-source' --exclude='draft-notes' \
             --exclude='__pycache__' --exclude='node_modules' \
             --exclude='scripts' ./ _site/
-      - name: Read authenticated Amrit project measurements and rate selections
+      - name: Read the Drive source index, rates, reinforcement sources and guide
+        if: steps.google_connection.outputs.configured == 'true'
+        run: python3 scripts/sync_estimation_sources.py --site _site
+
+      - name: Reconcile the current KKG source without publishing individual rows
+        if: steps.google_connection.outputs.configured == 'true'
+        run: python3 scripts/build_finance_from_google_sheets.py --reconcile-only --output _site/data/kkg-finance-source-status.json
+
+      - name: Read Fabin payments and reconcile the five project aggregates
         if: steps.google_connection.outputs.configured == 'true'
         run: |
-          set -euo pipefail
-          python3 scripts/build_amrit_project_from_google_sheets.py --output _site/projects/rohini/ward-14/amrit-rawat/project-costing.json
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=json.loads(Path('_site/projects/rohini/ward-14/amrit-rawat/project-costing.json').read_text())
-          assert p['publicSnapshot']['authenticatedSourceFetch'] is True
-          assert p['publicSnapshot']['admittedMeasurementRows']==len(p['measurementRows'])
-          assert p['publicSnapshot']['admittedRateSelections']==len(p['rateSelections'])
-          assert p['boqRows']==[] and p['aoc']['grandTotalNpr'] is None
-          print("PASS staged Amrit public projection: source-backed rows only; unapproved BOQ/actual bills excluded")
-          PY
-          echo 'Amrit source: AUTHENTICATED LIVE SHEET READ; only verified QTO and approved rate inputs admitted; BOQ remains draft pending approval.' >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Read Fabin v0.7 normalized Google Sheet into public-safe provisional project totals
-        # Current Fabin human source is 8 tabs; current adapter validates all mini-tables
-        # in place. Historical KKG-only releases and the Field Resources cutover
-        # retain the existing disclosure while the independent Fabin source is held.
-        if: steps.google_connection.outputs.configured == 'true' && !(github.event_name == 'push' && (contains(github.event.head_commit.message, '[kkg-v11-manual-read]') || contains(github.event.head_commit.message, '[field-resource-cutover]')))
-        shell: bash
-        run: |
-          set -euo pipefail
           python3 scripts/build_fabin_finance_from_google_sheets.py --output _site/fabin-payments-public.json
           node scripts/qa-fabin-finance.mjs --staged _site
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=json.loads(Path('_site/fabin-payments-public.json').read_text())
-          print('FABIN SOURCE VERSION:', p['sourceVersion'], 'normalized event revision:', p['normalizedEventVersion'])
-          with open(__import__('os').environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
-              out.write('Fabin source: AUTHENTICATED READ; control revision '
-                        + p['sourceVersion'] + ', unchanged event revision '
-                        + p['normalizedEventVersion']
-                        + '; five source-reported aggregates only, NOT certified payments; '
-                        + 'Basketball excluded and Hari reconciliation debt visible.\\n')
-          PY
-
-      - name: Record KKG-only release hold on unrelated Fabin schema drift
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[kkg-v11-manual-read]')
-        shell: bash
-        run: |
-          echo '::warning::KKG V1.1 release explicitly skips the unrelated Fabin schema-drift importer (issue #62). No Fabin Google Sheet changed; Fabin is NOT authenticated/refreshed by this run.'
-          echo 'KKG: requesting an authenticated fresh exact-title V1.1 three-tab source read. Fabin: independent source-schema hold issue #62, not read in this one-time release. Vendor and Contractor Bills unchanged.' >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Record the Fabin source hold for the Field Resources cutover
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[field-resource-cutover]')
-        run: echo 'Fabin source schema needs review. No Fabin payment projection was refreshed or generated by this cutover.' >> "$GITHUB_STEP_SUMMARY"
 
       # This marked push is a user-authorized one-time source-read release.
       # Ordinary pushes publish the checked snapshot; there is no scheduled refresh.
       - name: Refuse requested Vendor Bills read without Google authentication
-        if: (github.event_name == 'workflow_dispatch' && inputs.require_live_sheets == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[vendor-manual-read]')) && steps.google_connection.outputs.configured != 'true'
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_live_sheets == true || github.event_name == 'push' && (contains(github.event.head_commit.message, '[vendor-manual-read]') || contains(github.event.head_commit.message, '[estimation-source-sync]'))) && steps.google_connection.outputs.configured != 'true'
         run: |
           echo '::error::Vendor Bills authenticated source read was requested without a configured Google identity.'
           exit 1
 
       - name: Read Vendor Bills on manual dispatch or authorized marked push
-        if: (github.event_name == 'workflow_dispatch' && inputs.require_live_sheets == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[vendor-manual-read]')) && steps.google_connection.outputs.configured == 'true'
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_live_sheets == true || github.event_name == 'push' && (contains(github.event.head_commit.message, '[vendor-manual-read]') || contains(github.event.head_commit.message, '[estimation-source-sync]'))) && steps.google_connection.outputs.configured == 'true'
         env:
           JP_VENDOR_BILLS_SHEET_ID: ${{ secrets.JP_VENDOR_BILLS_SHEET_ID }}
         shell: bash
@@ -248,13 +200,13 @@ jobs:
       # This conditional push is an explicitly authorized one-time/manual release,
       # not a periodic refresh and not an ordinary code-commit refresh.
       - name: Refuse requested Contractor Bills read without Google authentication
-        if: (github.event_name == 'workflow_dispatch' && inputs.require_contractor_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[contractor-manual-read]')) && steps.google_connection.outputs.configured != 'true'
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_contractor_live == true || github.event_name == 'push' && (contains(github.event.head_commit.message, '[contractor-manual-read]') || contains(github.event.head_commit.message, '[estimation-source-sync]'))) && steps.google_connection.outputs.configured != 'true'
         run: |
           echo '::error::Requested Contractor Bills authenticated read but Google identity is not configured.'
           exit 1
 
       - name: Read Contractor Bills on explicit manual dispatch or authorized marked push
-        if: (github.event_name == 'workflow_dispatch' && inputs.require_contractor_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[contractor-manual-read]')) && steps.google_connection.outputs.configured == 'true'
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_contractor_live == true || github.event_name == 'push' && (contains(github.event.head_commit.message, '[contractor-manual-read]') || contains(github.event.head_commit.message, '[estimation-source-sync]'))) && steps.google_connection.outputs.configured == 'true'
         env:
           JP_CONTRACTOR_BILLS_SHEET_ID: ${{ secrets.JP_CONTRACTOR_BILLS_SHEET_ID }}
         shell: bash
@@ -278,13 +230,13 @@ jobs:
           echo 'Contractor Bills: AUTHENTICATED LIVE GOOGLE SHEETS READ passed; private source remained private, 16 reviews open, zero certified claims.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Refuse requested income status read without Google authentication
-        if: (github.event_name == 'workflow_dispatch' && inputs.require_income_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[income-manual-read]')) && steps.google_connection.outputs.configured != 'true'
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_income_live == true || github.event_name == 'push' && (contains(github.event.head_commit.message, '[income-manual-read]') || contains(github.event.head_commit.message, '[estimation-source-sync]'))) && steps.google_connection.outputs.configured != 'true'
         run: |
           echo '::error::Requested income status read requires Google WIF.'
           exit 1
 
       - name: Read source-reconciled Fabin Income without public amounts
-        if: (github.event_name == 'workflow_dispatch' && inputs.require_income_live == true || github.event_name == 'push' && contains(github.event.head_commit.message, '[income-manual-read]')) && steps.google_connection.outputs.configured == 'true'
+        if: (github.event_name == 'workflow_dispatch' && inputs.require_income_live == true || github.event_name == 'push' && (contains(github.event.head_commit.message, '[income-manual-read]') || contains(github.event.head_commit.message, '[estimation-source-sync]'))) && steps.google_connection.outputs.configured == 'true'
         run: |
           set -euo pipefail
           python3 scripts/build_income_status_from_google_sheets.py --output _site/data/income-register-status.v1.json
@@ -306,9 +258,6 @@ jobs:
       - name: Publish the reviewed historical field payments
         if: steps.google_connection.outputs.configured == 'true'
         run: python3 scripts/publish_field_payments.py --output _site
-      - name: Require historical Payment readback for the field cutover
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[field-resource-cutover]')
-        run: test -s _site/field-payments.json
 
       - name: Validate staged Pages against notebook privacy and public route boundaries
         run: node scripts/qa-methodology-site.mjs --staged _site

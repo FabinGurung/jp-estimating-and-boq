@@ -1,3 +1,13 @@
+## Estimating & BOQ source publishing — 23 November 2026
+
+[Google Drive publishing status](https://fabingurung.github.io/jp-estimating-and-boq/source-sheets.html#googleDrivePublishing) shows the latest verified reads. Use the [estimating Drive folder](https://drive.google.com/drive/folders/126AVR4iacXV3bwK8St66QrUFrYqlRtWS) to find the private source index and publishing guide.
+
+- The rate publisher reads the native indicative-rate library and the numeric observations from six registered PDF extracts. The original PDF pages, evidence metadata and extraction labels are retained.
+- Reinforcement sources are linked and checked for readable workbooks. Public status does not admit quantities to BOQs or certify procurement.
+- The current KKG register is reconciled separately from the historical public payment display. Fabin exports project totals. Vendor, contractor and income sections publish only their approved status summaries.
+- Individual attendance and Money & Goods records remain in their original restricted Sheets. Amrit Rawat remains on the historical measurement template pending an admitted current source.
+- Use the existing manual refresh workflow for a live-source refresh. The workspace retains its no-cron policy.
+
 ## Field Resources — 22 November 2026
 
 [Field Resources](field.html) provides the original Google Sheets for materials, daily work, measurements, attendance and field expenses. Reviewed measurements, material use and crew inputs can inform unit-rate analysis. Company Sheets retain their native formats and access controls. The historical Wage List 11 Payment publication uses the approved historical source and dedicated read-only build. Project maps and notification rules are maintained by Site Operations. The Desk Resources site publishes finalized client and engineering files from the Project Resources catalogue.

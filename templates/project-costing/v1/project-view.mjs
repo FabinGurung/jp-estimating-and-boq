@@ -53,7 +53,7 @@ if(main){
     const ps=p.publicSnapshot;
     const statusText=ps.authenticatedSourceFetch
       ? 'Source: authenticated LIVE project Sheet checked '+(ps.generatedAtUtc||'')+'.'
-      : 'Source: historical template; LIVE project Sheet has not been fetched.';
+      : 'Source: historical project template. A current measurement and costing register is pending admission.';
     notes.textContent += ' · '+statusText;
   }
  }catch(e){set(status,'SOURCE UNAVAILABLE — NO DATA PUBLISHED');set(notes,'The project source could not be validated. No quantities or financial totals are inferred.');writeTable(['record'],[]);}

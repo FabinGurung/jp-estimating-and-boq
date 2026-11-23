@@ -47,7 +47,6 @@ def read_project(tab, values):
     The source marks its subtotal as '▲ Total'. Never edit source layout.
     """
     groups = []
-    group_names = set()
     events = 0
     grand = None
     for i, row in enumerate(values):
@@ -57,12 +56,8 @@ def read_project(tab, values):
             grand = num(strcell(row, 2))
         if [strcell(row, k).casefold() for k in (0, 1, 2)] != ["time", "date", "amount"]:
             continue
-        if i == 0:
-            raise SourceError("MISSING_VENDOR_HEADER")
-        group_name = strcell(values[i-1], 0)
-        if not group_name or group_name.casefold() in group_names:
-            raise SourceError("DUPLICATE_OR_EMPTY_PARTY_SECTION")
-        group_names.add(group_name.casefold())
+        # The working sheet identifies a block by its header and subtotal.
+        # Section labels may be blank or repeat and are never published.
         sum_values = Decimal("0")
         count = 0
         end = None
@@ -72,8 +67,12 @@ def read_project(tab, values):
             if "total" in mark.casefold() and "▲" in mark:
                 end = j
                 break
+            if [strcell(payment, k).casefold() for k in (0, 1, 2)] == ["time", "date", "amount"]:
+                raise SourceError("MISSING_VENDOR_SUBTOTAL")
             if strcell(payment, 2):
                 if not strcell(payment, 1):
+                    if all(not strcell(payment, k) or num(strcell(payment, k)) == 0 for k in (2, 3, 4)):
+                        continue
                     raise SourceError("SOURCE_AMOUNT_WITHOUT_DATE")
                 sum_values += num(strcell(payment, 2))
                 count += 1
@@ -160,7 +159,7 @@ def derive(sheets, now=None):
         "cautions": [
             "All amounts are source-recorded, NOT approved, certified or bank-verified payments.",
             "Basketball/Prithivi potential overlap remains unresolved. Review-issue count is category-level only.",
-            "Each human mini-table is validated in place; this adapter does not require or write normalized event tables.",
+            "Each human mini-table is validated in place. Undated zero-value placeholders are excluded from the entry count.",
             "Sub-cent arithmetic display rounding is tolerated up to NPR 0.01, not silently corrected.",
         ],
         "privacy": {"publishedIndividualTransactions": 0, "publishedPartyNames": 0,
