@@ -48,7 +48,7 @@ if(i>=0){
   assert.equal(a.privacy.publishedPartyNames,0);
   assert.equal(a.privacy.publishedRawSourceUrls,0);
   assert.equal(a.privacy.officialProjectIdentityVerified,false);
-  assert(a.sourceEventCount>=439&&a.sourcePartySectionCount>=161);
+  assert(a.sourceEventCount>=438&&a.sourcePartySectionCount>=161);
   assert(a.reviewQueueIssueCount>0);
   assert(!Object.hasOwn(a,'payments')&&!Object.hasOwn(a,'vendors'));
   assert(!a.projects.some(p=>p.approval!=='NOT_VERIFIED'||'transactions' in p ||

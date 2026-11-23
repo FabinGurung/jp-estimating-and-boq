@@ -64,7 +64,7 @@ def select_unique_source(payload):
         raise SourceError("KKG_LIVE_SOURCE_MISMATCH")
     return identity
 
-def derive(sheets, now=None):
+def derive(sheets, now=None, reconcile_only=False):
     project = sheets["Bishal Paija"]
     master = sheets["Total"]
     memory = sheets["00_SYSTEM_MEMORY"]
@@ -104,8 +104,9 @@ def derive(sheets, now=None):
             raise SourceError("KKG_VENDOR_BANNER")
         sections.append(vid)
         cursor += 1
-        if (project[cursor][:6] !=
-                ["Time","Date (BS / AD)","Amount (NPR)","Discount (NPR)","QR (NPR)","Entry ID"]):
+        expected = ["Time","Date (BS / AD)","Amount (NPR)","Discount (NPR)","QR (NPR)"]
+        header = project[cursor]
+        if header[:5] != expected or (not reconcile_only and cell(header,5) != "Entry ID"):
             raise SourceError("KKG_MINI_TABLE_HEADER")
         cursor += 1
         entries = []
@@ -114,10 +115,11 @@ def derive(sheets, now=None):
             cursor+=1
             if not any(cell(r,k) for k in range(9)):
                 continue
-            stable_id,dt=cell(r,5),cell(r,1)
+            stable_id = (vid, cursor) if reconcile_only else cell(r,5)
+            dt = cell(r,1)
             if (not stable_id or stable_id in seen or not DATE.fullmatch(dt)
-                    or not cell(r,2) or cell(r,7) not in
-                    ("SOURCE_RECORDED_ONLY","REVIEW_REQUIRED","EVIDENCE_LINKED")):
+                    or not cell(r,2) or (not reconcile_only and cell(r,7) not in
+                    ("SOURCE_RECORDED_ONLY","REVIEW_REQUIRED","EVIDENCE_LINKED"))):
                 raise SourceError("KKG_PAYMENT_ID_DATE_STATUS")
             seen.add(stable_id)
             entry={"vendor_id":vid,"vendor":vendor["name"],"source_date":dt,
@@ -156,6 +158,11 @@ def derive(sheets, now=None):
         for row in master[1:3]:
             if decimal(cell(row,col),True)!=Decimal(str(totals[key])):
                 raise SourceError("KKG_TOTAL_PROJECT_ROLLUP")
+    ts=now or datetime.now(timezone.utc)
+    if reconcile_only:
+        return {"schema":"jp.kkg-finance.source-status.v1", "readAtUtc":ts.isoformat(timespec="seconds"),
+                "reconciled": True, "vendorGroups": len(vendors), "sourceRecords": len(payments),
+                "rowsPublished": 0, "financialApproval": "NOT_VERIFIED"}
     if len(master)<5 or master[4][:4]!=["Vendor / Purpose","Amount (NPR)","Discount (NPR)","QR (NPR)"]:
         raise SourceError("KKG_TOTAL_VENDOR_HEADER")
     for i,vendor in enumerate(vendors):
@@ -167,7 +174,6 @@ def derive(sheets, now=None):
                 raise SourceError("KKG_TOTAL_VENDOR_VALUE")
     if len(master)<=5+len(vendors) or cell(master[5+len(vendors)],0)!="ALL VENDORS":
         raise SourceError("KKG_TOTAL_VENDOR_GRAND")
-    ts=now or datetime.now(timezone.utc)
     return {"schema":"jp.finance.public.v1","version":"1.1.0",
             "verified_on":ts.date().isoformat(),"publication_mode":"github_actions_google_sheets",
             "source_synced_at_utc":ts.isoformat(timespec="seconds"),
@@ -255,10 +261,20 @@ if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--self-test",action="store_true")
     parser.add_argument("--output",type=Path,default=OUTPUT)
+    parser.add_argument("--reconcile-only",action="store_true",
+                        help="Verify the five-column live source and publish only reconciliation status")
     args=parser.parse_args()
     try:
         if args.self_test:
             self_test()
+        elif args.reconcile_only:
+            if args.output == OUTPUT:
+                parser.error("Reconciliation status requires a separate output file")
+            status=derive(fetch_google(),reconcile_only=True)
+            args.output.parent.mkdir(parents=True,exist_ok=True)
+            args.output.write_text(json.dumps(status,indent=2)+"\n",encoding="utf-8")
+            print("PASS KKG live reconciliation:",status["vendorGroups"],"vendor groups,",
+                  status["sourceRecords"],"source records. Status only.")
         else:
             data=derive(fetch_google())
             args.output.parent.mkdir(parents=True,exist_ok=True)
