@@ -1,21 +1,16 @@
-name: Amrit Rawat — Manual Google Sheet rate sync
-# Explicit Run workflow only. No scheduled or push-triggered source updates.
-# Reusable research workflow owns read-only source derivation; no second Pages deployment.
+name: Amrit Rawat — Archived source status
+
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
-
-concurrency:
-  group: amrit-rawat-default-scheduler
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  refresh-project-rate-assumptions:
-    uses: FabinGurung/jp-estimating-and-boq/.github/workflows/sync-amrit-rawat-rates.yml@research/open-estimation-engine-v0.1
-    permissions:
-      contents: write
-      id-token: write
-    secrets: inherit
+  archive-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the archived source status
+        run: |
+          echo 'The former standalone Amrit rate register and measurement template are archived.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Use the Estimating & BOQ manual refresh for the current Rate Library. Amrit measurements require an admitted project source.' >> "$GITHUB_STEP_SUMMARY"

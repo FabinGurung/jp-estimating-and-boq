@@ -10,6 +10,14 @@ on:
         required: false
         type: boolean
         default: true
+      require_contractor_live:
+        description: Validate contractor bill status
+        type: boolean
+        default: true
+      require_income_live:
+        description: Validate income reconciliation
+        type: boolean
+        default: true
 permissions:
   contents: read
 jobs:
