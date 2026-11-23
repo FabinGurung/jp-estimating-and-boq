@@ -162,6 +162,34 @@ jobs:
           python3 scripts/build_fabin_finance_from_google_sheets.py --output _site/fabin-payments-public.json
           node scripts/qa-fabin-finance.mjs --staged _site
 
+      - name: Retain verified manual status receipts across code-only deploys
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from urllib.error import HTTPError
+          from urllib.request import urlopen
+          base = 'https://fabingurung.github.io/jp-estimating-and-boq/data/'
+          receipts = {
+              'vendor-bills-status.v2.json': 'jp.vendor-bills-status.v2',
+              'contractor-bills-status.v1.json': 'jp.contractor-bills-status.v1',
+              'income-register-status.v1.json': 'jp.fabin-income.status.v1',
+          }
+          for name, schema in receipts.items():
+              try:
+                  with urlopen(base + name, timeout=25) as response:
+                      original = response.read(65537)
+              except HTTPError as error:
+                  if error.code == 404:
+                      continue
+                  raise
+              if len(original) > 65536:
+                  raise ValueError('Unexpected size for a public source status receipt')
+              status = json.loads(original)
+              if status.get('schema') == schema and status.get('sourceMode') == 'MANUAL_AUTHENTICATED_READ':
+                  Path('_site/data', name).write_bytes(original)
+          PY
+
       # This marked push is a user-authorized one-time source-read release.
       # Ordinary pushes publish the checked snapshot; there is no scheduled refresh.
       - name: Refuse requested Vendor Bills read without Google authentication
