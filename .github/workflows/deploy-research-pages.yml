@@ -287,6 +287,8 @@ jobs:
         if: steps.google_connection.outputs.configured == 'true'
         run: python3 scripts/publish_field_payments.py --output _site
 
+      - name: Install the registered Google Drive source gallery
+        run: python3 .github/source-gallery/install.py _site jp-estimating-and-boq
       - name: Validate staged Pages against notebook privacy and public route boundaries
         run: node scripts/qa-methodology-site.mjs --staged _site
       - name: Configure GitHub Pages
