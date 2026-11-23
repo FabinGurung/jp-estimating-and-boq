@@ -1,9 +1,10 @@
-name: Cost Estimation — Manual Google Sheets to GitHub Pages
+name: Estimating & BOQ — Refresh Google Drive sources
 # Manual workflows live on default main, but the sole website publisher is
 # research/open-estimation-engine-v0.1. We dispatch that exact workflow rather
 # than duplicating its authentication, validation, or Pages publication logic.
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   actions: write
@@ -31,12 +32,14 @@ jobs:
           gh workflow run deploy-research-pages.yml \
             --repo "$GITHUB_REPOSITORY" \
             --ref research/open-estimation-engine-v0.1 \
-            -f require_live_sheets=true
+            -f require_live_sheets=true \
+            -f require_contractor_live=true \
+            -f require_income_live=true
           {
             echo "### Manual JP Cost Estimation source refresh"
             echo "- Site publisher: research/open-estimation-engine-v0.1"
             echo "- Existing keyless Google WIF is reused in the target workflow."
-            echo "- The target build fails if LIVE Finance or Amrit Sheets cannot authenticate."
-            echo "- No competing Pages build code or PAT is introduced on main."
+            echo "- The target build validates its registered rates and eligible accounting projections before deploying."
+            echo "- The same source checks apply to the recovery entry point."
             echo "- Review actual result at https://github.com/$GITHUB_REPOSITORY/actions/workflows/deploy-research-pages.yml"
           } >> "$GITHUB_STEP_SUMMARY"
