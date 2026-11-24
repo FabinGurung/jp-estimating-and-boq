@@ -43,6 +43,16 @@ with TemporaryDirectory() as tmp:
     assert 'id="rateEvidence"' in (site/'rate-sources.html').read_text()
     assert (data/'contractor-summary-v0.1/page-005.jpg').is_file()
     assert len(json.loads((data/'contractor-work-items.v0.1.json').read_text())['items'])==158
+    for page in ('index.html','rate-sources.html','projects.html','quantity-workbooks.html','finance.html'):
+        html=(site/page).read_text()
+        assert 'class="mascot-lane"' not in html
+        assert html.count('class="mascot-track"') == 1
+        assert html.count('class="motion-toggle"') == 1
+    css=(site/'portal.css').read_text()
+    assert '@keyframes calc-free-flight' in css
+    assert '.mascot-track{position:fixed;inset:0' in css
+    assert 'var(--fly-bottom)' in css and 'var(--fly-middle)' in css
+    assert 'pointer-events:none' in css
     assert 'N / PAGE' not in (site/'index.html').read_text()
     assert 'W / SECTIONS' not in (site/'index.html').read_text()
     assert 'source-gallery.js' not in (site/'index.html').read_text()

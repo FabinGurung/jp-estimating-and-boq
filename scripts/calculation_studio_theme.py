@@ -10,6 +10,26 @@ header{background:#17274a;color:#fff;box-shadow:0 3px 12px #14234b20}header stro
 @media(min-width:720px){.overview-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:480px){.studio-hero{padding:14px;min-height:140px}.overview-tile{padding:11px}.register-table th,.register-table td{padding:8px;font-size:.82rem}}@media(prefers-reduced-motion:reduce){.mascot{animation:none!important}}
 .mascot-lane{position:relative;isolation:isolate;height:64px;overflow:hidden;border:1px solid #dbe1f0;border-radius:11px;margin:0 0 14px;background:linear-gradient(90deg,#e9edff,#fff,#e9edff)}.mascot-lane .lane-equation{position:absolute;left:12px;bottom:8px;color:#254bc156;font:600 1.05rem ui-monospace,monospace;letter-spacing:.1em}.mascot-lane .mascot-track{bottom:0;height:55px}.mascot-lane .mascot{left:12px;width:48px;height:48px;animation:calc-travel 15s ease-in-out infinite alternate}.mascot-lane .motion-toggle{z-index:1;background:#ffffffed;font-size:.7rem;top:4px;right:6px;padding:3px 6px}@keyframes calc-travel{0%,8%{left:12px;transform:rotate(-5deg)}48%{transform:translateY(-3px) rotate(4deg)}92%,100%{left:calc(100% - 60px);transform:rotate(5deg)}}.studio-hero{min-height:0}.studio-hero h2{max-width:100%}@media(prefers-reduced-motion:reduce){.mascot-lane .mascot{animation:none!important}}
 
+/* Calc flies around the visible page, not a clipped horizontal lane. */
+.mascot-track{position:fixed;inset:0;width:100%;height:100%;z-index:40;pointer-events:none;overflow:clip;--fly-left:8px;--fly-right:calc(100vw - 66px);--fly-top:min(150px,29vh);--fly-bottom:max(var(--fly-top),calc(100vh - 100px));--fly-middle:calc((var(--fly-top) + var(--fly-bottom))/2)}
+@supports(height:100dvh){.mascot-track{--fly-top:min(150px,29dvh);--fly-bottom:max(var(--fly-top),calc(100dvh - 100px))}}
+.mascot-track .mascot{position:absolute;top:0;left:0;width:56px;height:56px;opacity:.94;will-change:transform;animation:calc-free-flight 25s linear infinite}
+@keyframes calc-free-flight{
+0%,100%{transform:translate3d(var(--fly-left),var(--fly-top),0) rotate(-9deg)}
+12%{transform:translate3d(calc(25vw - 10px),calc(var(--fly-top) + 25px),0) rotate(10deg)}
+24%{transform:translate3d(var(--fly-right),var(--fly-middle),0) rotate(15deg)}
+36%{transform:translate3d(calc(72vw - 35px),var(--fly-bottom),0) rotate(-12deg)}
+48%{transform:translate3d(calc(40vw - 20px),calc(var(--fly-bottom) - 28px),0) rotate(-12deg)}
+60%{transform:translate3d(var(--fly-left),var(--fly-middle),0) rotate(13deg)}
+72%{transform:translate3d(calc(50vw - 28px),var(--fly-top),0) rotate(10deg)}
+84%{transform:translate3d(var(--fly-right),calc(var(--fly-top) + 32px),0) rotate(-11deg)}
+92%{transform:translate3d(calc(30vw - 15px),var(--fly-middle),0) rotate(-15deg)}
+}
+header .motion-toggle{position:static;flex-shrink:0;margin-left:auto;color:#fff;background:#24395f;border-color:#7385ab;font-size:.7rem;min-height:28px}
+.motion-off .mascot-track .mascot{animation:none!important;transform:translate3d(var(--fly-right),var(--fly-bottom),0)}
+@media(max-width:480px){.mascot-track .mascot{width:46px;height:46px}header .brand-line{flex-wrap:wrap}header strong{font-size:.9rem}header .motion-toggle{font-size:.67rem}}
+@media(prefers-reduced-motion:reduce){.mascot-track .mascot{animation:none!important;transform:translate3d(var(--fly-right),var(--fly-bottom),0)}}
+
 """
 MASCOT="""<div class="mascot-track" aria-hidden="true"><svg class="mascot" viewBox="0 0 72 72"><path d="M20 53l-8 9m38-9 8 9" stroke="#17274a" stroke-width="5" stroke-linecap="round"/><path d="M16 33 5 27m51 6 11-6" stroke="#17274a" stroke-width="4" stroke-linecap="round"/><rect x="16" y="5" width="40" height="52" rx="11" fill="#254bc1" stroke="#17274a" stroke-width="2"/><rect x="22" y="11" width="28" height="17" rx="5" fill="#fff"/><circle cx="30" cy="18" r="2.8" fill="#17274a"/><circle cx="42" cy="18" r="2.8" fill="#17274a"/><path d="M32 23q4 4 8 0" stroke="#17274a" fill="none" stroke-width="1.5"/><g fill="#dce5ff"><rect x="23" y="34" width="7" height="6" rx="1.5"/><rect x="33" y="34" width="7" height="6" rx="1.5"/><rect x="23" y="44" width="7" height="6" rx="1.5"/><rect x="33" y="44" width="7" height="6" rx="1.5"/></g><rect x="43" y="34" width="7" height="16" rx="2" fill="#f2b64e"/><path d="M44.5 40h4m-4 4h4" stroke="#17274a" stroke-width="1.4"/></svg></div>"""
 HOME_JS=r"""
