@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timezone
 import gzip
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -151,6 +152,7 @@ def read_public_guidance(session, file_id):
 # 24 November 2026: user-authorized workbook navigation only.
 # Never copy private worksheet titles, cells, workforce names or source notes into this directory.
 # The existing authenticated Source Index remains the authority for the approved keys.
+APPROVED_WORKBOOK_ID_DIGEST = 'b6a753355c721ddb9b3014afe8ed73e8c3fb81611c13d3895946e83e88e38fb9'
 WORKBOOK_GROUPS = (
     ('core', 'Rates, finance and funding', (
         ('rate-master', 'Construction Rate Library', 'Rate reference · read on publishing builds', 'Rates'),
@@ -178,6 +180,7 @@ WORKBOOK_GROUPS = (
 def publish_workbook_links(registry, site):
     groups = []
     seen = set()
+    ordered_ids = []
     for key, title, entries in WORKBOOK_GROUPS:
         cards = []
         for source_key, label, detail, expected_mode in entries:
@@ -185,11 +188,14 @@ def publish_workbook_links(registry, site):
             if mode != expected_mode or not re.fullmatch(r'[A-Za-z0-9_-]{20,160}', file_id) or file_id in seen:
                 raise SourceHold('Approved workbook directory contract changed')
             seen.add(file_id)
+            ordered_ids.append(file_id)
             cards.append({'key': source_key, 'title': label, 'detail': detail,
                           'url': f'https://docs.google.com/spreadsheets/d/{file_id}/edit'})
         groups.append({'key': key, 'title': title, 'cards': cards})
     if [len(group['cards']) for group in groups] != [8, 4, 21] or len(seen) != 33:
         raise SourceHold('Workbook directory must contain 33 approved original links')
+    if hashlib.sha256('\n'.join(ordered_ids).encode()).hexdigest() != APPROVED_WORKBOOK_ID_DIGEST:
+        raise SourceHold('An approved workbook identity changed; review the directory before publishing')
     write_json(site / 'data/estimating-workbook-links.json', {
         'schema': 'jp.estimating.workbook-links.v1',
         'groups': groups,
