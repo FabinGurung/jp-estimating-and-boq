@@ -20,7 +20,7 @@ INDICATIVE_HEADERS = ['Source Rate ID', 'Category', 'Work / Rate Item', 'Contrac
                       'Low NPR', 'High NPR', 'Unit', 'Measurement Basis / Scope', 'Source Status']
 LOCATOR = re.compile(r'https://docs\.google\.com/(spreadsheets|document)/d/([A-Za-z0-9_-]{20,160})/edit(?:\?.*)?')
 PRIVATE = re.compile(r'https?://|\b[\w.+-]+@[\w.-]+\.\w+\b|ya29\.|private key|access_token', re.I)
-BBS = {'bbs-slab': 'Slab', 'bbs-beam': 'Beam', 'bbs-stair': 'Staircase', 'bbs-shear': 'Shear wall', 'bbs-footing': 'Footing', 'bbs-column': 'Column'}
+BBS = {'bbs-slab': 'Slab', 'bbs-beam': 'Beam', 'bbs-stair': 'Staircase', 'bbs-shear': 'Shear wall', 'bbs-footing': 'Footing', 'bbs-column': 'Column', 'bbs-water-tank': 'Water Tank'}
 
 
 class SourceHold(Exception):
@@ -213,6 +213,7 @@ def publish_quantity_and_projects(session, registry, site):
         ('bbs-stair', 'Staircase BBS', '1KWEGuoa5m96nBHzdsTLMDyw5Y-mn9FHcbMJkBJ7fEiE'),
         ('bbs-footing', 'Footing BBS', '1nYnmXy3_fQp3GY6kZ1WTFd_PJcnF-lB9zCUS6dcoZT8'),
         ('bbs-column', 'Column BBS', '1UocFpIOgzN2_WFoYlE5DPIs29XUvR1rORyCsB0qgzVs'),
+        ('bbs-water-tank', 'Water Tank BBS', '1vchKRu-rP_d72d-4E5axpMxf3c6F061PD_MaNsD4uBw'),
     ]
     cards = []
     for key, label, expected in bbs_ids:
@@ -353,6 +354,17 @@ def sync(site):
                             for r in order[3:]))
                     if not checked:
                         raise SourceHold('Footing procurement table failed schema check')
+                elif key == 'bbs-water-tank':
+                    if tab != '00_PROJECTS_AND_ORDER':
+                        raise SourceHold('Water tank order tab changed')
+                    order = sheet_rows(session, file, f"'{tab}'!A4:C12", label)
+                    hold = sheet_rows(session, file, f"'{tab}'!A27:C27", label)
+                    checked = (len(order) == 9 and order[0] == ['DIAMETER mm', 'MUUTHA', '12 m RODS']
+                               and [r[0] for r in order[1:] if r] == [8,10,12,16,20,25,32,7]
+                               and all(not any(v not in ('', None) for v in r[1:]) for r in order[1:])
+                               and hold == [['RELEASE', 'HOLD', 'NO PURCHASE']])
+                    if not checked:
+                        raise SourceHold('Water tank hold / blank approved-order schema check failed')
                 elif key == 'bbs-column':
                     if tab != '00_PROJECTS_AND_ORDER':
                         raise SourceHold('Column order tab changed')
