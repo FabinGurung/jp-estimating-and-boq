@@ -148,6 +148,55 @@ def read_public_guidance(session, file_id):
     return guidance
 
 
+# 24 November 2026: user-authorized workbook navigation only.
+# Never copy private worksheet titles, cells, workforce names or source notes into this directory.
+# The existing authenticated Source Index remains the authority for the approved keys.
+WORKBOOK_GROUPS = (
+    ('core', 'Rates, finance and funding', (
+        ('rate-master', 'Construction Rate Library', 'Rate reference · read on publishing builds', 'Rates'),
+        ('pdf-rates', 'PDF Rate Observations', 'Six source families · observations and numeric candidates', 'Rates'),
+        ('finance-1', 'Fabin Gurung — Income V000001', 'Manual integrity status · restricted income', 'Finance reader'),
+        ('finance-2', 'Contractor Bills — LIVE', 'Manual status · claims not certified', 'Finance reader'),
+        ('finance-3', 'Vendor Bills — LIVE', 'Manual status · invoices not certified', 'Finance reader'),
+        ('finance-4', 'Fabin Gurung — Payments v0.7', 'Source-reported project payments', 'Finance reader'),
+        ('finance-5', 'Krishna Kumar Gupta — Payments V1.1', 'Source reconciliation · restricted original', 'Finance reader'),
+        ('funding', 'Project Funding — v1.1', 'Funding-party attribution only; not a budget or payment ledger', 'Restricted reference'),
+    )),
+    ('wages', 'Wage List 11 — working historical references', (
+        ('historical-work', 'Work — CLEAN v1.1', 'Working reference · historical conversion', 'Restricted reference'),
+        ('historical-attendance', 'Attendance — CLEAN v1.1', 'Working reference · historical conversion', 'Restricted reference'),
+        ('historical-wage', 'Wage — CLEAN v1.1', 'Working reference · historical conversion', 'Restricted reference'),
+        ('historical-payment', 'Payment — CLEAN v1.1', 'Reviewed payment reference · historical conversion', 'Existing payment reader'),
+    )),
+    ('workforce', 'Individual workforce workbooks', tuple(
+        (f'w{i:02}', f'W{i:02}', 'Money and Goods by Project Site' if i <= 10 else 'Original Attendance by Project Site', 'Restricted field source')
+        for i in range(1, 22)
+    )),
+)
+
+
+def publish_workbook_links(registry, site):
+    groups = []
+    seen = set()
+    for key, title, entries in WORKBOOK_GROUPS:
+        cards = []
+        for source_key, label, detail, expected_mode in entries:
+            file_id, _, mode = registry[source_key]
+            if mode != expected_mode or not re.fullmatch(r'[A-Za-z0-9_-]{20,160}', file_id) or file_id in seen:
+                raise SourceHold('Approved workbook directory contract changed')
+            seen.add(file_id)
+            cards.append({'key': source_key, 'title': label, 'detail': detail,
+                          'url': f'https://docs.google.com/spreadsheets/d/{file_id}/edit'})
+        groups.append({'key': key, 'title': title, 'cards': cards})
+    if [len(group['cards']) for group in groups] != [8, 4, 21] or len(seen) != 33:
+        raise SourceHold('Workbook directory must contain 33 approved original links')
+    write_json(site / 'data/estimating-workbook-links.json', {
+        'schema': 'jp.estimating.workbook-links.v1',
+        'groups': groups,
+        'access': 'Google Drive permissions apply; links only; no sharing changes or private rows.',
+    })
+
+
 def sync(site):
     import google.auth
     from google.auth.transport.requests import AuthorizedSession
@@ -158,6 +207,7 @@ def sync(site):
     ])
     with AuthorizedSession(credentials) as session:
         registry = read_registry(session)
+        publish_workbook_links(registry, site)
         bbs = []
         for key, label in BBS.items():
             file, tab, mode = registry[key]
