@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import shutil
 import tempfile
+from calculation_studio_theme import EXTRA_CSS, MASCOT, HOME_JS, RATE_JS
 
 ROOT=Path(__file__).resolve().parents[1]
 NAV=[('index.html','Home'),('rate-sources.html','Rates'),('projects.html','Projects'),
@@ -53,7 +54,7 @@ def write(path,value):
     path.write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 def page(path,title,subtitle,body):
     nav=''.join(f'<a href="{u}"'+(' aria-current="page"' if u==path else '')+f'>{ESC(label)}</a>' for u,label in NAV)
-    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{ESC(title)} | JP Estimating</title><link rel="stylesheet" href="portal.css"><script defer src="portal-carousels.js"></script><script defer src="portal-projects.js"></script></head><body><header><strong>JP ESTIMATING &amp; BOQ</strong><nav aria-label="Main navigation">{nav}</nav></header><main><h1>{ESC(title)}</h1><p class="sub">{ESC(subtitle)}</p>{body}<p class="footer"><a href="https://docs.google.com/spreadsheets/d/12TvdU4pI_qiTPCe1JGkc1pn1QzKqwLSIS79QUk4ATEY/edit">Source Index</a> · <a href="https://drive.google.com/drive/folders/126AVR4iacXV3bwK8St66QrUFrYqlRtWS">Estimating Drive</a></p></main></body></html>'
+    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{ESC(title)} | JP Cost &amp; Quantity Studio</title><link rel="stylesheet" href="portal.css"><script defer src="portal-carousels.js"></script><script defer src="portal-projects.js"></script><script defer src="portal-directory.js"></script><script defer src="portal-rate-evidence.js"></script></head><body><header><div class="brand-line"><span class="brand-mark" aria-hidden="true">Σ</span><strong>JP COST &amp; QUANTITY STUDIO</strong></div><nav aria-label="Main navigation">{nav}</nav></header><main><h1>{ESC(title)}</h1><p class="sub">{ESC(subtitle)}</p>{body}<p class="footer"><a href="https://docs.google.com/spreadsheets/d/12TvdU4pI_qiTPCe1JGkc1pn1QzKqwLSIS79QUk4ATEY/edit">Source Index</a> · <a href="https://drive.google.com/drive/folders/126AVR4iacXV3bwK8St66QrUFrYqlRtWS">Estimating Drive</a></p></main></body></html>'
 def stage(site):
     directory=read(site/'data/estimating-workbook-links.json')
     quantity=read(site/'data/quantity-workbook-links.json')
@@ -90,25 +91,47 @@ def stage(site):
     def gallery(key):
         expected=json.dumps([[g['key'],len(g['cards'])] for g in variants[key]],separators=(',',':'))
         return f'<section id="registeredWorkbookLinks"><div id="approvedWorkbookGalleries" data-json="data/{key}-links.json" data-expected="{ESC(expected,quote=True)}"><p data-workbook-loading>Loading working Google Sheets…</p></div></section>'
+    hero = '<section class="studio-hero" aria-label="Calculation studio"><div class="math-grid"></div><h2>Measure. Calculate. Verify.</h2><div class="equation">Σ (quantity × rate) = cost<br>kg = length × d² / 162</div><button type="button" class="motion-toggle" aria-pressed="false">Pause mascot</button>'+MASCOT+'</section>'
     pages={
-      'index.html':page('index.html','Working Google Sheets','41 original workbook links: 33 registers and rate/funding references, 7 BBS and 1 work measurement source.',gallery('home')),
-      'rate-sources.html':page('rate-sources.html','Rates','Open the working rate libraries in Google Sheets.',gallery('rates')),
-      'quantity-workbooks.html':page('quantity-workbooks.html','Quantity workbooks','BBS and measurement sources. Engineering approval remains separate.',gallery('quantity')),
-      'finance.html':page('finance.html','Working registers','Payments, bills, wages, attendance and workforce records.',gallery('registers')),
-      'projects.html':page('projects.html','Projects by organization','Recorded source summaries. Payments and claims are separate; candidate mappings are not approvals.','<div id="projectDirectory"><p>Loading project records…</p></div>'),
+      'index.html':page('index.html','Working Google Sheets','41 original working Google Sheets.',hero+'<div id="homeOverview"><p>Loading overview…</p></div>'),
+      'rate-sources.html':page('rate-sources.html','Rates','Working rate libraries and source-derived handbook references.',gallery('rates')+'<section class="section-card"><h2>Extracted rate handbook</h2><p class="caption">Browse original work-item descriptions, units, provisional values and source pages. Select an illustrated item to see its original scan.</p><div id="rateEvidence">Loading source evidence…</div></section>'),
+      'quantity-workbooks.html':page('quantity-workbooks.html','Quantity workbooks','BBS and measurement sources. Engineering approval remains separate.','<div class="formula-strip"><span>V = L × B × H</span><span>kg ≈ L × d² / 162</span><span>Bars = ⌈L / s⌉ + 1</span></div>'+gallery('quantity')),
+      'finance.html':page('finance.html','Working registers','Cross-organization original workbooks. Open a category or search for a register.','<div id="registerDirectory"><p>Loading registers…</p></div>'),
+      'projects.html':page('projects.html','Projects by organization','Project-level summaries from shared payment and bill registers. The original workbooks are not restricted to one company.','<div id="projectDirectory"><p>Loading project records…</p></div>'),
       'source-sheets.html':'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=index.html#registeredWorkbookLinks"><title>Working Google Sheets</title></head><body><a href="index.html#registeredWorkbookLinks">Open the workbook galleries</a></body></html>'
     }
     with tempfile.TemporaryDirectory() as tmp:
         out=Path(tmp)
         for path,body in pages.items():
             (out/path).write_text(body,encoding='utf-8')
-        (out/'portal.css').write_text(CSS,encoding='utf-8')
+        (out/'portal.css').write_text(CSS+EXTRA_CSS,encoding='utf-8')
+        (out/'portal-directory.js').write_text(HOME_JS,encoding='utf-8')
+        (out/'portal-rate-evidence.js').write_text(RATE_JS,encoding='utf-8')
         (out/'portal-carousels.js').write_text(js,encoding='utf-8')
         (out/'portal-projects.js').write_text(PROJECTS_JS,encoding='utf-8')
         for key,variant in variants.items():
             write(out/'data'/f'{key}-links.json',{'schema':directory['schema'],'groups':variant})
         write(out/'data/estimating-workbook-links.json',directory)
         write(out/'data/estimating-project-directory.json',project)
+        # Restore the previously published PDF evidence, not the old knowledge pages.
+        rate_manifest = read(ROOT/'data/rate-source-derived.v0.5.15.json')
+        road_manifest = read(ROOT/'data/contractor-work-items.v0.1.json')
+        rate_paths = {'data/rate-source-derived.v0.5.15.json','data/contractor-work-items.v0.1.json',
+                      'data/contractor-short-labels.v0.1.json',road_manifest['summary_pdf']}
+        for source in rate_manifest['sources']:
+            for key in ('entries','candidates','pages'):
+                rate_paths.update(source[key])
+        for number in road_manifest['summary_pages']:
+            rate_paths.add(road_manifest['page_image_pattern'].replace('{page}',str(number).zfill(3)))
+        for rel in sorted(rate_paths):
+            assert rel.startswith('data/') and '..' not in Path(rel).parts
+            source = site/rel
+            if not source.is_file():
+                source = ROOT/rel
+            assert source.is_file(), 'Missing reviewed rate asset: '+rel
+            destination=out/rel
+            destination.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(source,destination)
         # Preserve only the previously approved manual-source receipt files for future manual refreshes.
         for name in ('vendor-bills-status.v1.json','vendor-bills-status.v2.json','contractor-bills-status.v1.json','income-register-status.v1.json'):
             p=site/'data'/name
@@ -123,7 +146,7 @@ def stage(site):
     assert not (site/'measurements-boq.html').exists()
     assert not (site/'projects').exists()
     assert len(list(site.rglob('*.html')))==6
-    print('SOURCE-ONLY PORTAL PASS: 5 working routes + source-directory redirect; 41 original links; old pages excluded.')
+    print('CALCULATION STUDIO PASS: 5 working routes + source-directory redirect; 41 original links; restored reviewed PDF evidence.')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--site',required=True,type=Path);stage(p.parse_args().site)
