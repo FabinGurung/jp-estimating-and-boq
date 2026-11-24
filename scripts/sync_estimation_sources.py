@@ -203,6 +203,123 @@ def publish_workbook_links(registry, site):
     })
 
 
+
+def publish_quantity_and_projects(session, registry, site):
+    # These are registered originals, not engineering approval or procurement authority.
+    bbs_ids = [
+        ('bbs-slab', 'Slab BBS', '1NWrRJlUr0bZ3TqGE1rYlQDJFaoMK02oqQQvdw0FThL4'),
+        ('bbs-beam', 'Beam BBS', '1R66MsXW9hqgH5y7_hFyoXutIHWfgquV2z-TEGq7NDKs'),
+        ('bbs-shear', 'Shear Wall BBS', '1qAfo2F7Rm3uXaDERRwslJNyhsi6DmpTN8bmCvqSfY10'),
+        ('bbs-stair', 'Staircase BBS', '1KWEGuoa5m96nBHzdsTLMDyw5Y-mn9FHcbMJkBJ7fEiE'),
+    ]
+    cards = []
+    for key, label, expected in bbs_ids:
+        fid, tab, mode = registry[key]
+        if fid != expected or mode != 'Read status':
+            raise SourceHold('Quantity workbook identity or mode changed')
+        cards.append({'key': key, 'title': label, 'detail': 'Working reinforcement and procurement workbook',
+                      'url': f'https://docs.google.com/spreadsheets/d/{fid}/edit'})
+    fid, _, mode = registry['field-1']
+    if fid != '1NvvOD7UUDAvWVnGOC33q2MOy3h6ZDoD1Y2es9l3dpiY' or mode != 'Restricted field source':
+        raise SourceHold('Measurement evidence identity changed')
+    evidence = {'key': 'field-1', 'title': 'Fishtail Work Measurement Evidence',
+                'detail': 'Working measurement evidence; quantities require review',
+                'url': f'https://docs.google.com/spreadsheets/d/{fid}/edit'}
+    write_json(site / 'data/quantity-workbook-links.json', {'groups': [
+        {'key': 'bbs', 'title': 'Reinforcement BBS', 'cards': cards},
+        {'key': 'quantity', 'title': 'Work measurement evidence', 'cards': [evidence]}]})
+
+    def norm(name):
+        return ' '.join(re.sub(r'[_-]+', ' ', name.strip().casefold()).split())
+    def safe_name(name):
+        return isinstance(name, str) and 1 <= len(name) <= 140 and not PRIVATE.search(name) and not any(c in name for c in '<>\n\r')
+    groups = {}
+    projects = {}
+    def add_project(name, org, source, detail=None):
+        if not safe_name(name) or not safe_name(org):
+            raise SourceHold('Invalid project label')
+        k = (org, norm(name))
+        if k not in projects:
+            p = {'name': name.replace('_', ' '), 'sources': []}
+            projects[k] = p
+            groups.setdefault(org, []).append(p)
+        p = projects[k]
+        if not any(s['source'] == source for s in p['sources']):
+            row = {'source': source}
+            if detail is not None:
+                row['detail'] = detail
+            p['sources'].append(row)
+        return p
+    def existing(name):
+        found = [(org, p) for (org, n), p in projects.items() if n == norm(name) and org != 'Organization not established']
+        return found[0][0] if len(found) == 1 else 'Organization not established'
+    def rows(key, tab):
+        return sheet_rows(session, registry[key][0], tab, key)
+    fab = rows('finance-4', "'Total'!A1:E")
+    if not fab or fab[0] != ['Project', 'Amount', 'QR', 'Discount', 'Company']:
+        raise SourceHold('Fabin project summary headers changed')
+    aliases = {'rohini engineering and consultancy': 'Rohini Engineering and Builders',
+               'fishtail buidlers pvt ltd': 'Fishtail Builders',
+               'fishtail builders pvt ltd': 'Fishtail Builders'}
+    for r in fab[1:]:
+        if not r or not r[0] or norm(str(r[0])) == 'total':
+            continue
+        if len(r) < 5 or not safe_name(r[0]) or not safe_name(r[4]) or not numeric(r[1]):
+            raise SourceHold('Invalid Fabin project summary')
+        org = aliases.get(norm(r[4]), r[4])
+        add_project(r[0], org, 'Fabin Gurung payments', {'recordedNpr': r[1], 'state': 'Source-reported payment; not certified'})
+    kkg = rows('finance-5', "'Total'!A1:D")
+    if not kkg or kkg[0] != ['Project','Amount (NPR)','Discount (NPR)','QR (NPR)']:
+        raise SourceHold('KKG project summary headers changed')
+    for r in kkg[1:]:
+        if not r or not r[0] or norm(str(r[0])) == 'total':
+            continue
+        if len(r) < 2 or not numeric(r[1]):
+            raise SourceHold('Invalid KKG project summary')
+        # Existing KKG source adapter explicitly establishes Rohini and Bishal Paija.
+        name = '14 Bishal Paija' if norm(r[0]) == 'bishal paija' else r[0]
+        add_project(name, 'Rohini Engineering and Builders', 'Krishna Kumar Gupta payments',
+                    {'recordedNpr': r[1], 'state': 'Source-reported payment; not certified'})
+
+    # Candidate labels are references only. No vendor amounts or contractor names are exported.
+    # An exact matching project label can be linked to a recorded organization, not an inferred ownership claim.
+    vendor = rows('finance-3', "'VB_MACHINE_REGISTRY'!A448:D480")
+    if not vendor or vendor[0] != ['Source Project Label','Candidate Project ID','Project Register Name','Mapping Status']:
+        raise SourceHold('Vendor project crosswalk header changed')
+    candidates = {}
+    for r in vendor[1:]:
+        if not r or not r[0]:
+            continue
+        label, cid, canonical, status = (r + ['']*4)[:4]
+        if not safe_name(label) or status not in ('CANDIDATE','UNRESOLVED'):
+            raise SourceHold('Invalid vendor crosswalk')
+        key = cid if cid else 'unresolved:' + norm(label)
+        if cid and not re.fullmatch(r'PRJ-\d{6}', cid):
+            raise SourceHold('Invalid candidate ID')
+        c = candidates.setdefault(key, {'name': canonical or label, 'labels': set(), 'id': cid})
+        c['labels'].add(label)
+    for c in candidates.values():
+        matches = {existing(n) for n in c['labels'] | {c['name']}} - {'Organization not established'}
+        org = next(iter(matches)) if len(matches) == 1 else 'Organization not established'
+        # Select a known existing payment project only if there is a unique exact label match.
+        exact = [p for (o,n),p in projects.items() if o == org and n in {norm(s) for s in c['labels'] | {c['name']}}]
+        name = exact[0]['name'] if len(exact) == 1 else c['name']
+        add_project(name, org, 'Vendor Bills', {'state': 'Candidate project crosswalk; not ownership or invoice approval'})
+    contractor = rows('finance-2', "'CT_PROJECT_SUMMARY'!A1:I")
+    if not contractor or contractor[0][:3] != ['Project As Recorded','Candidate Project ID','Contractor Source']:
+        raise SourceHold('Contractor summary header changed')
+    for r in contractor[1:]:
+        if not r or not r[0]:
+            continue
+        add_project(r[0], existing(r[0]), 'Contractor Bills', {'state': 'Recorded claim reference; not certified or paid'})
+    payload = {'schema': 'jp.estimating.project-directory.v1',
+               'readAtUtc': datetime.now(timezone.utc).isoformat(),
+               'groups': [{'organization': k, 'projects': v} for k,v in groups.items()],
+               'note': 'Separate source-reported records; no combined expenditure or certified amounts.'}
+    write_json(site / 'data/estimating-project-directory.json', payload)
+    print('Project directory: source-backed organization groups and separate source references:', sum(len(v) for v in groups.values()))
+
+
 def sync(site):
     import google.auth
     from google.auth.transport.requests import AuthorizedSession
@@ -214,6 +331,7 @@ def sync(site):
     with AuthorizedSession(credentials) as session:
         registry = read_registry(session)
         publish_workbook_links(registry, site)
+        publish_quantity_and_projects(session, registry, site)
         bbs = []
         for key, label in BBS.items():
             file, tab, mode = registry[key]
