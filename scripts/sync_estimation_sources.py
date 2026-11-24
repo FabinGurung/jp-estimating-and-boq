@@ -20,7 +20,7 @@ INDICATIVE_HEADERS = ['Source Rate ID', 'Category', 'Work / Rate Item', 'Contrac
                       'Low NPR', 'High NPR', 'Unit', 'Measurement Basis / Scope', 'Source Status']
 LOCATOR = re.compile(r'https://docs\.google\.com/(spreadsheets|document)/d/([A-Za-z0-9_-]{20,160})/edit(?:\?.*)?')
 PRIVATE = re.compile(r'https?://|\b[\w.+-]+@[\w.-]+\.\w+\b|ya29\.|private key|access_token', re.I)
-BBS = {'bbs-slab': 'Slab', 'bbs-beam': 'Beam', 'bbs-stair': 'Staircase', 'bbs-shear': 'Shear wall', 'bbs-footing': 'Footing'}
+BBS = {'bbs-slab': 'Slab', 'bbs-beam': 'Beam', 'bbs-stair': 'Staircase', 'bbs-shear': 'Shear wall', 'bbs-footing': 'Footing', 'bbs-column': 'Column'}
 
 
 class SourceHold(Exception):
@@ -212,6 +212,7 @@ def publish_quantity_and_projects(session, registry, site):
         ('bbs-shear', 'Shear Wall BBS', '1qAfo2F7Rm3uXaDERRwslJNyhsi6DmpTN8bmCvqSfY10'),
         ('bbs-stair', 'Staircase BBS', '1KWEGuoa5m96nBHzdsTLMDyw5Y-mn9FHcbMJkBJ7fEiE'),
         ('bbs-footing', 'Footing BBS', '1nYnmXy3_fQp3GY6kZ1WTFd_PJcnF-lB9zCUS6dcoZT8'),
+        ('bbs-column', 'Column BBS', '1UocFpIOgzN2_WFoYlE5DPIs29XUvR1rORyCsB0qgzVs'),
     ]
     cards = []
     for key, label, expected in bbs_ids:
@@ -352,6 +353,17 @@ def sync(site):
                             for r in order[3:]))
                     if not checked:
                         raise SourceHold('Footing procurement table failed schema check')
+                elif key == 'bbs-column':
+                    if tab != '00_PROJECTS_AND_ORDER':
+                        raise SourceHold('Column order tab changed')
+                    order = sheet_rows(session, file, f"'{tab}'!A4:C12", label)
+                    checked = (len(order) == 9 and order[0] == ['Rebar diameter (mm)', 'Muutha', '12 m rods']
+                        and [r[0] for r in order[1:] if r] == [8,10,12,16,20,25,32,7]
+                        and all(len(r) == 3 and ((r[1] == 'HOLD' and r[2] == 'HOLD') or
+                            (numeric(r[1]) and numeric(r[2]) and r[1] >= 0 and r[2] >= 0
+                             and int(r[1]) == r[1] and int(r[2]) == r[2])) for r in order[1:]))
+                    if not checked:
+                        raise SourceHold('Column procurement table failed schema check')
                 else:
                     checked = bool(sheet_rows(session, file, f"'{tab}'!A1:J12", label))
             except SourceHold:
