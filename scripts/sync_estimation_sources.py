@@ -304,10 +304,19 @@ def publish_quantity_and_projects(session, registry, site):
     for c in candidates.values():
         matches = {existing(n) for n in c['labels'] | {c['name']}} - {'Organization not established'}
         org = next(iter(matches)) if len(matches) == 1 else 'Organization not established'
+        # Owner correction, 24 November 2026: the nine previously unassigned projects
+        # belong to Fishtail Builders. Explicit scope only; future unresolved projects stay unresolved.
+        owner_fishtail_ids = {'PRJ-000017', 'PRJ-000021', 'PRJ-000004', 'PRJ-000002',
+                              'PRJ-000024', 'PRJ-000023', 'PRJ-000005'}
+        owner_fishtail_labels = {'14 hari baral', '20 kriya flagstone'}
+        owner_confirmed = (c['id'] in owner_fishtail_ids or
+                           (not c['id'] and norm(c['name']) in owner_fishtail_labels))
+        if owner_confirmed and org == 'Organization not established':
+            org = 'Fishtail Builders'
         # Select a known existing payment project only if there is a unique exact label match.
         exact = [p for (o,n),p in projects.items() if o == org and n in {norm(s) for s in c['labels'] | {c['name']}}]
         name = exact[0]['name'] if len(exact) == 1 else c['name']
-        add_project(name, org, 'Vendor Bills', {'state': 'Candidate project crosswalk; not ownership or invoice approval'})
+        add_project(name, org, 'Vendor Bills', {'state': ('Organization confirmed by owner, 24 Nov 2026; invoice mapping remains provisional' if owner_confirmed else 'Candidate project crosswalk; not invoice approval')})
     contractor = rows('finance-2', "'CT_PROJECT_SUMMARY'!A1:I")
     if not contractor or contractor[0][:3] != ['Project As Recorded','Candidate Project ID','Contractor Source']:
         raise SourceHold('Contractor summary header changed')

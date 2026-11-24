@@ -36,6 +36,13 @@ with TemporaryDirectory() as tmp:
     assert sum(len(g['cards']) for g in json.loads((data/'rates-links.json').read_text())['groups'])==2
     assert {c['key'] for g in json.loads((data/'quantity-links.json').read_text())['groups'] for c in g['cards']} >= {'bbs-column','bbs-footing','bbs-water-tank'}
     assert any(c['key']=='bbs-water-tank' and 'no purchase release' in c['detail'] for g in json.loads((data/'quantity-links.json').read_text())['groups'] for c in g['cards'])
+    assert 'id="homeOverview"' in (site/'index.html').read_text()
+    assert 'id="approvedWorkbookGalleries"' not in (site/'index.html').read_text()
+    assert 'id="registerDirectory"' in (site/'finance.html').read_text()
+    assert 'id="approvedWorkbookGalleries"' not in (site/'finance.html').read_text()
+    assert 'id="rateEvidence"' in (site/'rate-sources.html').read_text()
+    assert (data/'contractor-summary-v0.1/page-005.jpg').is_file()
+    assert len(json.loads((data/'contractor-work-items.v0.1.json').read_text())['items'])==158
     assert 'N / PAGE' not in (site/'index.html').read_text()
     assert 'W / SECTIONS' not in (site/'index.html').read_text()
     assert 'source-gallery.js' not in (site/'index.html').read_text()

@@ -295,6 +295,8 @@ jobs:
           python3 scripts/stage_source_only_portal.py --site _site
           node --check _site/portal-carousels.js
           node --check _site/portal-projects.js
+          node --check _site/portal-directory.js
+          node --check _site/portal-rate-evidence.js
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload static website
