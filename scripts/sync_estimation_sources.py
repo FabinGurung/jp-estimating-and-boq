@@ -154,7 +154,7 @@ def read_public_guidance(session, file_id):
 # The existing authenticated Source Index remains the authority for the approved keys.
 APPROVED_WORKBOOK_ID_DIGEST = 'b6a753355c721ddb9b3014afe8ed73e8c3fb81611c13d3895946e83e88e38fb9'
 WORKBOOK_GROUPS = (
-    ('core', 'Rates, finance and funding', (
+    ('core', 'Rates and finance', (
         ('rate-master', 'Construction Rate Library', 'Rate reference · read on publishing builds', 'Rates'),
         ('pdf-rates', 'PDF Rate Observations', 'Six source families · observations and numeric candidates', 'Rates'),
         ('finance-1', 'Fabin Gurung — Income V000001', 'Manual integrity status · restricted income', 'Finance reader'),
@@ -162,7 +162,7 @@ WORKBOOK_GROUPS = (
         ('finance-3', 'Vendor Bills — LIVE', 'Manual status · invoices not certified', 'Finance reader'),
         ('finance-4', 'Fabin Gurung — Payments v0.7', 'Source-reported project payments', 'Finance reader'),
         ('finance-5', 'Krishna Kumar Gupta — Payments V1.1', 'Source reconciliation · restricted original', 'Finance reader'),
-        ('funding', 'Project Funding — v1.1', 'Funding-party attribution only; not a budget or payment ledger', 'Restricted reference'),
+        ('funding', 'Project Funding — v1.1', 'Archived historical funding-party attribution', 'Archived'),
     )),
     ('wages', 'Wage List 11 — working historical references', (
         ('historical-work', 'Work — CLEAN v1.1', 'Working reference · historical conversion', 'Restricted reference'),
@@ -189,11 +189,13 @@ def publish_workbook_links(registry, site):
                 raise SourceHold('Approved workbook directory contract changed')
             seen.add(file_id)
             ordered_ids.append(file_id)
+            if expected_mode == 'Archived':
+                continue  # preserve identity in digest, exclude from active links
             cards.append({'key': source_key, 'title': label, 'detail': detail,
                           'url': f'https://docs.google.com/spreadsheets/d/{file_id}/edit'})
         groups.append({'key': key, 'title': title, 'cards': cards})
-    if [len(group['cards']) for group in groups] != [8, 4, 21] or len(seen) != 33:
-        raise SourceHold('Workbook directory must contain 33 approved original links')
+    if [len(group['cards']) for group in groups] != [7, 4, 21] or len(seen) != 33:
+        raise SourceHold('Workbook directory must contain 32 active links and one preserved archived identity')
     if hashlib.sha256('\n'.join(ordered_ids).encode()).hexdigest() != APPROVED_WORKBOOK_ID_DIGEST:
         raise SourceHold('An approved workbook identity changed; review the directory before publishing')
     write_json(site / 'data/estimating-workbook-links.json', {
