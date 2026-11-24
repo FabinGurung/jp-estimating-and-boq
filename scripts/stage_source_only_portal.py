@@ -61,9 +61,9 @@ def stage(site):
     project=read(site/'data/estimating-project-directory.json')
     receipt=read(site/'data/estimating-source-receipt.json')
     groups=directory['groups']+quantity['groups']
-    assert [len(g['cards']) for g in groups]==[8,4,21,7,1]
+    assert [len(g['cards']) for g in groups]==[7,4,21,7,1]
     cards=[c for g in groups for c in g['cards']]
-    assert len({c['key'] for c in cards})==41 and len({c['url'] for c in cards})==41
+    assert len({c['key'] for c in cards})==40 and len({c['url'] for c in cards})==40
     assert all(re.fullmatch(r'https://docs\.google\.com/spreadsheets/d/[A-Za-z0-9_-]{20,160}/edit',c['url']) for c in cards)
     assert all(set(c)=={'key','title','detail','url'} for c in cards)
     assert all(re.fullmatch(r'W(?:0[1-9]|1[0-9]|2[01])',c['title']) for c in groups[2]['cards'])
@@ -80,7 +80,7 @@ def stage(site):
         return {'key':key,'title':title,'cards':cards}
     core=groups[0]['cards']
     rates=select('rates','Rate workbooks',core[:2])
-    finance=select('finance','Payments, bills and funding',core[2:])
+    finance=select('finance','Payments and bills',core[2:])
     variants={'home':groups,'rates':[rates],'registers':[finance,groups[1],groups[2]],'quantity':groups[3:]}
     oldjs=(ROOT/'estimating-workbook-carousels.js').read_text()
     js=oldjs.replace("const expected = [['core',8],['wages',4],['workforce',21]];",
@@ -93,7 +93,7 @@ def stage(site):
         return f'<section id="registeredWorkbookLinks"><div id="approvedWorkbookGalleries" data-json="data/{key}-links.json" data-expected="{ESC(expected,quote=True)}"><p data-workbook-loading>Loading working Google Sheets…</p></div></section>'
     hero = '<section class="studio-hero" aria-label="Calculation studio"><div class="math-grid"></div><h2>Measure. Calculate. Verify.</h2><div class="equation">Σ (quantity × rate) = cost<br>Steel mass (kg) ≈ L × d² / 162<br><small>L in metres · d in millimetres</small></div></section>'
     pages={
-      'index.html':page('index.html','Working Google Sheets','41 original working Google Sheets.',hero+'<div id="homeOverview"><p>Loading overview…</p></div>'),
+      'index.html':page('index.html','Working Google Sheets','40 original working Google Sheets.',hero+'<div id="homeOverview"><p>Loading overview…</p></div>'),
       'rate-sources.html':page('rate-sources.html','Rates','Working rate libraries and source-derived handbook references.',gallery('rates')+'<section class="section-card"><h2>Extracted rate handbook</h2><p class="caption">Browse original work-item descriptions, units, provisional values and source pages. Select an illustrated item to see its original scan.</p><div id="rateEvidence">Loading source evidence…</div></section>'),
       'quantity-workbooks.html':page('quantity-workbooks.html','Quantity workbooks','BBS and measurement sources. Engineering approval remains separate.','<div class="formula-strip"><span>V = L × B × H</span><span>Steel kg ≈ L(m) × d(mm)² / 162</span><span>Bar count = ⌈clear bar-centre span / max spacing⌉ + 1</span></div>'+gallery('quantity')),
       'finance.html':page('finance.html','Working registers','Cross-organization original workbooks. Open a category or search for a register.','<div id="registerDirectory"><p>Loading registers…</p></div>'),
@@ -146,7 +146,7 @@ def stage(site):
     assert not (site/'measurements-boq.html').exists()
     assert not (site/'projects').exists()
     assert len(list(site.rglob('*.html')))==6
-    print('CALCULATION STUDIO PASS: 5 working routes + source-directory redirect; 41 original links; restored reviewed PDF evidence.')
+    print('CALCULATION STUDIO PASS: 5 working routes + source-directory redirect; 40 original links; restored reviewed PDF evidence.')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--site',required=True,type=Path);stage(p.parse_args().site)

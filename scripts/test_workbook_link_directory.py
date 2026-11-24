@@ -35,9 +35,10 @@ def test_directory():
             payload = json.loads((site / 'data/estimating-workbook-links.json').read_text())
             assert payload['schema'] == 'jp.estimating.workbook-links.v1'
             assert [g['key'] for g in payload['groups']] == ['core', 'wages', 'workforce']
-            assert [len(g['cards']) for g in payload['groups']] == [8, 4, 21]
+            assert [len(g['cards']) for g in payload['groups']] == [7, 4, 21]
             cards = [c for g in payload['groups'] for c in g['cards']]
-            assert len({c['url'] for c in cards}) == 33
+            assert len({c['url'] for c in cards}) == 32
+            assert all(c['key'] != 'funding' for c in cards)
             assert all(set(c) == {'key', 'title', 'detail', 'url'} for c in cards)
             assert [c['title'] for c in payload['groups'][2]['cards']] == [f'W{i:02}' for i in range(1, 22)]
             changed = dict(registry)
