@@ -20,7 +20,7 @@ INDICATIVE_HEADERS = ['Source Rate ID', 'Category', 'Work / Rate Item', 'Contrac
                       'Low NPR', 'High NPR', 'Unit', 'Measurement Basis / Scope', 'Source Status']
 LOCATOR = re.compile(r'https://docs\.google\.com/(spreadsheets|document)/d/([A-Za-z0-9_-]{20,160})/edit(?:\?.*)?')
 PRIVATE = re.compile(r'https?://|\b[\w.+-]+@[\w.-]+\.\w+\b|ya29\.|private key|access_token', re.I)
-BBS = {'bbs-slab': 'Slab', 'bbs-beam': 'Beam', 'bbs-stair': 'Staircase', 'bbs-shear': 'Shear wall'}
+BBS = {'bbs-slab': 'Slab', 'bbs-beam': 'Beam', 'bbs-stair': 'Staircase', 'bbs-shear': 'Shear wall', 'bbs-footing': 'Footing'}
 
 
 class SourceHold(Exception):
@@ -211,6 +211,7 @@ def publish_quantity_and_projects(session, registry, site):
         ('bbs-beam', 'Beam BBS', '1R66MsXW9hqgH5y7_hFyoXutIHWfgquV2z-TEGq7NDKs'),
         ('bbs-shear', 'Shear Wall BBS', '1qAfo2F7Rm3uXaDERRwslJNyhsi6DmpTN8bmCvqSfY10'),
         ('bbs-stair', 'Staircase BBS', '1KWEGuoa5m96nBHzdsTLMDyw5Y-mn9FHcbMJkBJ7fEiE'),
+        ('bbs-footing', 'Footing BBS', '1nYnmXy3_fQp3GY6kZ1WTFd_PJcnF-lB9zCUS6dcoZT8'),
     ]
     cards = []
     for key, label, expected in bbs_ids:
@@ -338,7 +339,21 @@ def sync(site):
             if mode != 'Read status' or not re.fullmatch(r'[A-Za-z0-9_]+', tab):
                 raise SourceHold('Invalid BBS read contract')
             try:
-                checked = bool(sheet_rows(session, file, f"'{tab}'!A1:J12", label))
+                if key == 'bbs-footing':
+                    if tab != '00_Order_and_Projects':
+                        raise SourceHold('Footing order tab changed')
+                    order = sheet_rows(session, file, f"'{tab}'!A1:C11", label)
+                    checked = (len(order) == 11 and order[2] == [
+                        'Rebar diameter', 'Muutha to order', 'Purchased 12 m rods']
+                        and all(len(r) == 3 and numeric(r[0]) and (
+                            (r[1] == 'HOLD' and r[2] == 'HOLD') or
+                            (numeric(r[1]) and numeric(r[2]) and r[1] >= 0 and r[2] >= 0
+                             and int(r[1]) == r[1] and int(r[2]) == r[2]))
+                            for r in order[3:]))
+                    if not checked:
+                        raise SourceHold('Footing procurement table failed schema check')
+                else:
+                    checked = bool(sheet_rows(session, file, f"'{tab}'!A1:J12", label))
             except SourceHold:
                 checked = False
             bbs.append({'item': label, 'sourceRead': checked})

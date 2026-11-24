@@ -60,9 +60,9 @@ def stage(site):
     project=read(site/'data/estimating-project-directory.json')
     receipt=read(site/'data/estimating-source-receipt.json')
     groups=directory['groups']+quantity['groups']
-    assert [len(g['cards']) for g in groups]==[8,4,21,4,1]
+    assert [len(g['cards']) for g in groups]==[8,4,21,5,1]
     cards=[c for g in groups for c in g['cards']]
-    assert len({c['key'] for c in cards})==38 and len({c['url'] for c in cards})==38
+    assert len({c['key'] for c in cards})==39 and len({c['url'] for c in cards})==39
     assert all(re.fullmatch(r'https://docs\.google\.com/spreadsheets/d/[A-Za-z0-9_-]{20,160}/edit',c['url']) for c in cards)
     assert all(set(c)=={'key','title','detail','url'} for c in cards)
     assert all(re.fullmatch(r'W(?:0[1-9]|1[0-9]|2[01])',c['title']) for c in groups[2]['cards'])
@@ -71,6 +71,8 @@ def stage(site):
         item=c['title'].replace(' BBS','')
         flag=statuses.get(item) if item!='Shear Wall' else statuses.get('Shear wall')
         c['detail']='Source read verified; engineering approval separate' if flag is True else 'Registered original; source read not confirmed'
+        if c['key']=='bbs-footing':
+            c['detail'] += '; open workbook for procurement readiness'
     def select(key,title,cards):
         return {'key':key,'title':title,'cards':cards}
     core=groups[0]['cards']
@@ -87,7 +89,7 @@ def stage(site):
         expected=json.dumps([[g['key'],len(g['cards'])] for g in variants[key]],separators=(',',':'))
         return f'<section id="registeredWorkbookLinks"><div id="approvedWorkbookGalleries" data-json="data/{key}-links.json" data-expected="{ESC(expected,quote=True)}"><p data-workbook-loading>Loading working Google Sheets…</p></div></section>'
     pages={
-      'index.html':page('index.html','Working Google Sheets','38 original workbook links: 33 registers and rate/funding references, 4 BBS and 1 work measurement source.',gallery('home')),
+      'index.html':page('index.html','Working Google Sheets','39 original workbook links: 33 registers and rate/funding references, 5 BBS and 1 work measurement source.',gallery('home')),
       'rate-sources.html':page('rate-sources.html','Rates','Open the working rate libraries in Google Sheets.',gallery('rates')),
       'quantity-workbooks.html':page('quantity-workbooks.html','Quantity workbooks','BBS and measurement sources. Engineering approval remains separate.',gallery('quantity')),
       'finance.html':page('finance.html','Working registers','Payments, bills, wages, attendance and workforce records.',gallery('registers')),
@@ -119,7 +121,7 @@ def stage(site):
     assert not (site/'measurements-boq.html').exists()
     assert not (site/'projects').exists()
     assert len(list(site.rglob('*.html')))==6
-    print('SOURCE-ONLY PORTAL PASS: 5 working routes + source-directory redirect; 38 original links; old pages excluded.')
+    print('SOURCE-ONLY PORTAL PASS: 5 working routes + source-directory redirect; 39 original links; old pages excluded.')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--site',required=True,type=Path);stage(p.parse_args().site)
