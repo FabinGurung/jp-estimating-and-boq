@@ -291,6 +291,11 @@ jobs:
         run: python3 .github/source-gallery/install.py _site jp-estimating-and-boq
       - name: Validate staged Pages against notebook privacy and public route boundaries
         run: node scripts/qa-methodology-site.mjs --staged _site
+      - name: Stage and validate the compact working-source portal
+        run: |
+          python3 scripts/stage_source_only_portal.py --site _site
+          node --check _site/portal-carousels.js
+          node --check _site/portal-projects.js
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload static website
