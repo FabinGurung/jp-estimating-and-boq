@@ -33,6 +33,8 @@ jobs:
         run: |
           node --check app.js
           node --check data.js
+          node --check estimating-workbook-carousels.js
+          python3 scripts/test_workbook_link_directory.py
 
       - name: MEP and Work Specifications regression
         run: |
