@@ -130,13 +130,12 @@ jobs:
         if: steps.google_connection.outputs.configured == 'true'
         run: python3 -m pip install 'google-auth>=2,<3' 'requests>=2,<3'
 
-      - name: Preserve the reviewed historical KKG payment display
+      - name: Validate the preserved historical KKG snapshot from Git
+        # The compact source-only portal no longer serves this old asset.
+        # Its final allowlist excludes this Git-preserved snapshot from public output.
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --max-time 30 --retry 2 \
-            https://fabingurung.github.io/jp-estimating-and-boq/finance-public-snapshot.json \
-            --output finance-public-snapshot.json
-          echo '3471c3b5446f2df9c441e215be17ae8dddcbd7e87c594072e96397386704f31a  finance-public-snapshot.json' | sha256sum --check --status
+          git diff --exit-code -- finance-public-snapshot.json
           node scripts/validate-finance-public.mjs
 
       - name: Stage static Pages files excluding Google credentials
