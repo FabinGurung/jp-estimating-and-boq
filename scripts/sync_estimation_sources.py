@@ -436,7 +436,11 @@ def sync(site):
         registry = read_registry(session, worker_codes)
         publish_workbook_links(registry, site)
         publish_quantity_and_projects(session, registry, site)
-        publish_clean_wages(session, registry, site, worker_codes)
+        try:
+            publish_clean_wages(session, registry, site, worker_codes)
+        except SourceHold as exc:
+            print('Optional CLEAN summaries held:', str(exc))
+            write_json(site/'data/clean-wage-summaries.json', {'schema':'jp.clean-wage-summaries.v1','readAtUtc':datetime.now(timezone.utc).isoformat(),'sections':[], 'status':'HOLD — source access or schema check failed; open the original workbooks.'})
         bbs = []
         for key, label in BBS.items():
             file, tab, mode = registry[key]
