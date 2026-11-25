@@ -463,7 +463,10 @@ def sync(site):
             publish_clean_wages(session, registry, site, worker_codes)
         except SourceHold as exc:
             print('Optional CLEAN summaries held:', str(exc))
-            write_json(site/'data/clean-wage-summaries.json', {'schema':'jp.clean-wage-summaries.v1','readAtUtc':datetime.now(timezone.utc).isoformat(),'sections':[], 'status':'HOLD — source access or schema check failed; open the original workbooks.'})
+            snapshot = json.loads((ROOT/'data/clean-wage-summary-manual.v1.json').read_text())
+            if snapshot.get('schema') != 'jp.clean-wage-summaries.v1' or snapshot.get('sourceMode') != 'MANUAL_CONNECTOR_SNAPSHOT' or len(snapshot.get('sections', [])) != 4:
+                raise SourceHold('Invalid manual CLEAN summary snapshot')
+            write_json(site/'data/clean-wage-summaries.json', snapshot)
         bbs = []
         for key, label in BBS.items():
             file, tab, mode = registry[key]
