@@ -14,6 +14,7 @@
     if(data.schema!=='jp.clean-wage-summaries.v1'||!Array.isArray(data.sections))throw Error();
     const urls=new Map(links.groups.flatMap(g=>g.cards.map(c=>[c.key,c.url])));
     root.replaceChildren();
+    if(data.status){make('p',root,data.status,'caption');return;}
     make('p',root,'Source read: '+new Date(data.readAtUtc).toLocaleString('en-GB',{timeZone:'Asia/Kathmandu'})+' NPT','caption');
     for(const s of data.sections){
       const details=make('details',root,undefined,'source-group');make('summary',details,s.title+' — CLEAN');
