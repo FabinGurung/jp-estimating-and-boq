@@ -10,7 +10,7 @@ import tempfile
 from calculation_studio_theme import EXTRA_CSS, MASCOT, HOME_JS, RATE_JS
 
 ROOT=Path(__file__).resolve().parents[1]
-NAV=[('index.html','Home'),('rate-sources.html','Rates'),('projects.html','Projects'),
+NAV=[('index.html','Home'),('rate-sources.html','Rates'),('projects.html','Project accounts'),
      ('quantity-workbooks.html','Quantity workbooks'),('finance.html','Registers')]
 ESC=html.escape
 CSS="""
@@ -35,11 +35,11 @@ PROJECTS_JS=r"""
    const grid=add('div',section,null,'project-grid');
    for(const p of group.projects){
     if(!p.sources.length)continue;
-    const card=add('article',grid,null,'project');add('h3',card,p.name);
+    const card=add('details',grid,null,'project');const summary=add('summary',card,p.name+' · '+p.sources.length+' source summaries');summary.style.fontWeight='700';summary.style.cursor='pointer';
     for(const src of p.sources){
      const row=add('div',card,null,'source-row');
      const link=add('a',row,src.source);link.href=urls.get(labels[src.source]);link.target='_blank';link.rel='noopener noreferrer';
-     if(typeof src.detail?.recordedNpr==='number'&&Number.isFinite(src.detail.recordedNpr))add('strong',row,npr.format(src.detail.recordedNpr));
+     if(src.detail?.metrics){for(const [label,value] of Object.entries(src.detail.metrics)){if(typeof value==='number'&&Number.isFinite(value))add('p',row,label+': '+(/NPR|QR/.test(label)?npr.format(value):new Intl.NumberFormat('en-IN',{maximumFractionDigits:4}).format(value)));}}else if(typeof src.detail?.recordedNpr==='number'&&Number.isFinite(src.detail.recordedNpr))add('strong',row,npr.format(src.detail.recordedNpr));if(src.detail?.range)add('small',row,'Source: '+src.detail.range);
      if(src.detail?.state)add('small',row,src.detail.state);
     }
    }
@@ -54,7 +54,7 @@ def write(path,value):
     path.write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 def page(path,title,subtitle,body):
     nav=''.join(f'<a href="{u}"'+(' aria-current="page"' if u==path else '')+f'>{ESC(label)}</a>' for u,label in NAV)
-    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{ESC(title)} | JP Cost &amp; Quantity Studio</title><link rel="stylesheet" href="portal.css"><script defer src="portal-carousels.js"></script><script defer src="portal-projects.js"></script><script defer src="portal-directory.js"></script><script defer src="portal-rate-evidence.js"></script></head><body><header><div class="brand-line"><span class="brand-mark" aria-hidden="true">Σ</span><strong>JP COST &amp; QUANTITY STUDIO</strong><button type="button" class="motion-toggle" aria-pressed="false">Pause mascot</button></div><nav aria-label="Main navigation">{nav}</nav></header><main><h1>{ESC(title)}</h1><p class="sub">{ESC(subtitle)}</p>{body}<p class="footer"><a href="https://docs.google.com/spreadsheets/d/12TvdU4pI_qiTPCe1JGkc1pn1QzKqwLSIS79QUk4ATEY/edit">Source Index</a> · <a href="https://drive.google.com/drive/folders/126AVR4iacXV3bwK8St66QrUFrYqlRtWS">Estimating Drive</a></p></main>{MASCOT}</body></html>'
+    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{ESC(title)} | JP Cost &amp; Quantity Studio</title><link rel="stylesheet" href="portal.css"><script defer src="portal-carousels.js"></script><script defer src="portal-projects.js"></script><script defer src="portal-directory.js"></script><script defer src="portal-rate-evidence.js"></script><script defer src="portal-wages.js"></script></head><body><header><div class="brand-line"><span class="brand-mark" aria-hidden="true">Σ</span><strong>JP COST &amp; QUANTITY STUDIO</strong><button type="button" class="motion-toggle" aria-pressed="false">Pause mascot</button></div><nav aria-label="Main navigation">{nav}</nav></header><main><h1>{ESC(title)}</h1><p class="sub">{ESC(subtitle)}</p>{body}<p class="footer"><a href="https://docs.google.com/spreadsheets/d/12TvdU4pI_qiTPCe1JGkc1pn1QzKqwLSIS79QUk4ATEY/edit">Source Index</a> · <a href="https://drive.google.com/drive/folders/126AVR4iacXV3bwK8St66QrUFrYqlRtWS">Estimating Drive</a></p></main>{MASCOT}</body></html>'
 def stage(site):
     directory=read(site/'data/estimating-workbook-links.json')
     quantity=read(site/'data/quantity-workbook-links.json')
@@ -93,11 +93,11 @@ def stage(site):
         return f'<section id="registeredWorkbookLinks"><div id="approvedWorkbookGalleries" data-json="data/{key}-links.json" data-expected="{ESC(expected,quote=True)}"><p data-workbook-loading>Loading working Google Sheets…</p></div></section>'
     hero = '<section class="studio-hero" aria-label="Calculation studio"><div class="math-grid"></div><h2>Measure. Calculate. Verify.</h2><div class="equation">Σ (quantity × rate) = cost<br>Steel mass (kg) ≈ L × d² / 162<br><small>L in metres · d in millimetres</small></div></section>'
     pages={
-      'index.html':page('index.html','Working Google Sheets','40 original working Google Sheets.',hero+'<div id="homeOverview"><p>Loading overview…</p></div>'),
+      'index.html':page('index.html','Cost & quantity dashboard','40 working Google Sheets.',hero+'<div id="homeOverview"><p>Loading overview…</p></div><details class="source-group"><summary>Interactive calculation sculpture</summary><iframe title="Particle dissolution — mathematics sculpture" loading="lazy" src="particle-study.html" style="width:100%;height:320px;border:0;border-radius:12px"></iframe></details>'),
       'rate-sources.html':page('rate-sources.html','Rates','Working rate libraries and source-derived handbook references.',gallery('rates')+'<section class="section-card"><h2>Extracted rate handbook</h2><p class="caption">Browse original work-item descriptions, units, provisional values and source pages. Select an illustrated item to see its original scan.</p><div id="rateEvidence">Loading source evidence…</div></section>'),
       'quantity-workbooks.html':page('quantity-workbooks.html','Quantity workbooks','BBS and measurement sources. Engineering approval remains separate.','<div class="formula-strip"><span>V = L × B × H</span><span>Steel kg ≈ L(m) × d(mm)² / 162</span><span>Bar count = ⌈clear bar-centre span / max spacing⌉ + 1</span></div>'+gallery('quantity')),
-      'finance.html':page('finance.html','Working registers','Cross-organization original workbooks. Open a category or search for a register.','<div id="registerDirectory"><p>Loading registers…</p></div>'),
-      'projects.html':page('projects.html','Projects by organization','Project-level summaries from shared payment and bill registers. The original workbooks are not restricted to one company.','<div id="projectDirectory"><p>Loading project records…</p></div>'),
+      'finance.html':page('finance.html','Working registers','Cross-organization original workbooks. Open a category or search for a register.','<div id="registerDirectory"><p>Loading registers…</p></div><section class="section-card"><h2>Wage List 11 — CLEAN summaries</h2><p class="caption">Existing totals and site summaries read directly from four Sheets. Worker codes only; personal payment and wage details remain in the originals.</p><div id="wageSummaries">Loading source summaries…</div></section>'),
+      'projects.html':page('projects.html','Project accounts by organization','Existing payment and bill summaries, read directly from the working Sheets. Expand a project to view each source separately.','<div id="projectDirectory"><p>Loading project records…</p></div>'),
       'source-sheets.html':'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=index.html#registeredWorkbookLinks"><title>Working Google Sheets</title></head><body><a href="index.html#registeredWorkbookLinks">Open the workbook galleries</a></body></html>'
     }
     with tempfile.TemporaryDirectory() as tmp:
@@ -109,6 +109,11 @@ def stage(site):
         (out/'portal-rate-evidence.js').write_text(RATE_JS,encoding='utf-8')
         (out/'portal-carousels.js').write_text(js,encoding='utf-8')
         (out/'portal-projects.js').write_text(PROJECTS_JS,encoding='utf-8')
+        shutil.copy2(ROOT/'scripts/portal-wages.js',out/'portal-wages.js')
+        shutil.copy2(ROOT/'scripts/particle-study.html',out/'particle-study.html')
+        if (site/'data/clean-wage-summaries.json').is_file():
+            (out/'data').mkdir(exist_ok=True)
+            shutil.copy2(site/'data/clean-wage-summaries.json',out/'data/clean-wage-summaries.json')
         for key,variant in variants.items():
             write(out/'data'/f'{key}-links.json',{'schema':directory['schema'],'groups':variant})
         write(out/'data/estimating-workbook-links.json',directory)
@@ -142,10 +147,10 @@ def stage(site):
             if child.is_dir():shutil.rmtree(child)
             else:child.unlink()
         shutil.copytree(out,site,dirs_exist_ok=True)
-    assert sorted(p.name for p in site.glob('*.html'))==sorted(pages)
+    assert sorted(p.name for p in site.glob('*.html'))==sorted(list(pages)+['particle-study.html'])
     assert not (site/'measurements-boq.html').exists()
     assert not (site/'projects').exists()
-    assert len(list(site.rglob('*.html')))==6
+    assert len(list(site.rglob('*.html')))==7
     print('CALCULATION STUDIO PASS: 5 working routes + source-directory redirect; 40 original links; restored reviewed PDF evidence.')
 
 if __name__=='__main__':
