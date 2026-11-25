@@ -298,6 +298,7 @@ jobs:
           node --check _site/portal-projects.js
           node --check _site/portal-directory.js
           node --check _site/portal-rate-evidence.js
+          node --check _site/portal-wages.js
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload static website
