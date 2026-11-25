@@ -64,6 +64,9 @@ with TemporaryDirectory() as tmp:
     assert 'pointer-events:none' in css
     assert 'N / PAGE' not in (site/'index.html').read_text()
     assert 'W / SECTIONS' not in (site/'index.html').read_text()
+    assert len(json.loads((data/'quantity-links.json').read_text())['groups']) == 2
+    assert 'Measured site work — Fishtail' in (site/'quantity-workbooks.html').read_text()
+    assert 'Open CLEAN work measurement register' in (site/'quantity-workbooks.html').read_text()
     assert 'source-gallery.js' not in (site/'index.html').read_text()
     assert not (site/'measurements-boq.html').exists()
     assert not (site/'projects').exists()
