@@ -4,6 +4,7 @@ This is a read-only adapter: no source writes, no normalized worksheets required
 """
 from __future__ import annotations
 import argparse
+from collections import Counter
 import json
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -42,6 +43,21 @@ def num(value):
     return x
 
 
+def money_columns(row, indices=(2, 3, 4)):
+    return tuple(num(strcell(row, k)) if strcell(row, k) else Decimal("0") for k in indices)
+
+
+def add_money(a, b):
+    return tuple(x + y for x, y in zip(a, b))
+
+
+def same_money(a, b):
+    return all(abs(x - y) <= EPSILON for x, y in zip(a, b))
+
+
+ZERO = (Decimal("0"),) * 3
+
+
 def read_project(tab, values):
     """Discover every date/amount mini-table in the existing human sheet.
     The source marks its subtotal as '▲ Total'. Never edit source layout.
@@ -49,16 +65,22 @@ def read_project(tab, values):
     groups = []
     events = 0
     grand = None
+    grand_fields = None
+    summary = []
+    fingerprints = Counter()
     for i, row in enumerate(values):
         if "master total" in strcell(row, 0).casefold():
             if grand is not None:
                 raise SourceError("DUPLICATE_PROJECT_TOTAL")
             grand = num(strcell(row, 2))
+            grand_fields = money_columns(row)
+        elif grand is None and i > 0 and strcell(row, 0).isdigit() and strcell(row, 1):
+            summary.append(money_columns(row))
         if [strcell(row, k).casefold() for k in (0, 1, 2)] != ["time", "date", "amount"]:
             continue
         # The working sheet identifies a block by its header and subtotal.
         # Section labels may be blank or repeat and are never published.
-        sum_values = Decimal("0")
+        sum_values = ZERO
         count = 0
         end = None
         for j in range(i + 1, len(values)):
@@ -74,21 +96,37 @@ def read_project(tab, values):
                     if all(not strcell(payment, k) or num(strcell(payment, k)) == 0 for k in (2, 3, 4)):
                         continue
                     raise SourceError("SOURCE_AMOUNT_WITHOUT_DATE")
-                sum_values += num(strcell(payment, 2))
+                fields = money_columns(payment)
+                sum_values = add_money(sum_values, fields)
+                fingerprints[(strcell(payment, 0), strcell(payment, 1), *fields)] += 1
                 count += 1
         if end is None:
             raise SourceError("MISSING_VENDOR_SUBTOTAL")
-        declared = num(strcell(values[end], 2))
-        if abs(sum_values - declared) > EPSILON:
+        declared = money_columns(values[end])
+        if not same_money(sum_values, declared):
             raise SourceError("VENDOR_DETAIL_SUBTOTAL_DIFFERENCE")
         groups.append(declared)
         events += count
     if not groups or grand is None:
         raise SourceError("NO_PROJECT_GROUPS_OR_TOTAL")
-    total = sum(groups, Decimal("0"))
-    if abs(total - grand) > EPSILON:
+    total = ZERO
+    for group in groups:
+        total = add_money(total, group)
+    if not same_money(total, grand_fields):
         raise SourceError("PROJECT_SECTIONS_DO_NOT_RECONCILE")
-    return {"grand": grand, "sectionTotal": total, "sections": len(groups), "events": events}
+    # A human may move a named section or leave an obsolete empty section.
+    # Compare each monetary triple without assuming that table order is identity.
+    # Do not treat a monetary match as proof of vendor identity or payment approval.
+    unmatched = list(groups)
+    for entry in summary:
+        match = next((i for i, group in enumerate(unmatched) if same_money(entry, group)), None)
+        if match is None:
+            raise SourceError("PROJECT_PARTY_SUMMARY_DIFFERENCE")
+        unmatched.pop(match)
+    if any(group != ZERO for group in unmatched):
+        raise SourceError("UNMATCHED_NONZERO_VENDOR_SECTION")
+    return {"grand": grand, "grandFields": grand_fields, "sectionTotal": total[0],
+            "sections": len(groups), "events": events, "fingerprints": fingerprints}
 
 
 def derive(sheets, now=None):
@@ -110,17 +148,22 @@ def derive(sheets, now=None):
     events = 0
     sections = 0
     public = []
+    source_fields = ZERO
+    project_fingerprints = {}
     for tab in PROJECT_TABS:
         project = read_project(tab, sheets[tab])
         events += project["events"]
         sections += project["sections"]
+        project_fingerprints[tab] = project["fingerprints"]
         if tab == "04_Basketball Project":
-            continue  # recorded separately; excluded due to Prithivi overlap
+            continue  # quarantine separately; never admit duplicated source rows
         row = active[tab]
         declared = num(strcell(row, 1))
-        if abs(project["grand"] - declared) > EPSILON:
+        row_fields = money_columns(row, (1, 3, 2))
+        if not same_money(project["grandFields"], row_fields):
             raise SourceError("PROJECT_SOURCE_SUMMARY_DIFFERENCE")
         delta = project["sectionTotal"] - declared
+        source_fields = add_money(source_fields, row_fields)
         five_sum += declared
         detail_total += project["sectionTotal"]
         public.append({
@@ -133,10 +176,19 @@ def derive(sheets, now=None):
             "reconciliation": "ARITHMETIC_MATCH_ONLY" if abs(delta) <= EPSILON else "SOURCE_TOTAL_CONFLICT",
             "approval": "NOT_VERIFIED",
         })
-    if abs(five_sum - source_total) > EPSILON:
+    if not same_money(source_fields, money_columns(declared_row, (1, 3, 2))) or abs(five_sum - source_total) > EPSILON:
         raise SourceError("FIVE_PROJECT_TOTAL_CONFLICT")
     if events < 1 or sections < 1:
         raise SourceError("EMPTY_SOURCE")
+    # Match on source date/time and all recorded numeric columns, as a multiset.
+    # Internal only: never serialize individual fingerprints or transaction rows.
+    remaining = project_fingerprints["04_Basketball Project"].copy()
+    overlap_projects = []
+    for tab in PROJECT_TABS[:-1]:
+        matches = remaining & project_fingerprints[tab]
+        if matches:
+            overlap_projects.append(tab)
+            remaining -= matches
     timestamp = now or datetime.now(timezone.utc)
     return {
         "schema": "jp.fabin-payments.source-aggregate.v1",
@@ -155,10 +207,11 @@ def derive(sheets, now=None):
         "sourcePartySectionCount": sections,
         "reviewQueueIssueCount": 1,  # one unresolved overlapping project-family review; NOT count of historic flags
         "projects": public,
-        "exclusions": ["Basketball Project: possible duplicate of 09_Prithivi Mandi; excluded from five-project rollup"],
+        "exclusions": ["Basketball Project: quarantined from five-project rollup pending project allocation review"],
         "cautions": [
             "All amounts are source-recorded, NOT approved, certified or bank-verified payments.",
-            "Basketball/Prithivi potential overlap remains unresolved. Review-issue count is category-level only.",
+            ("Basketball source-record overlap candidates: " + ", ".join(overlap_projects) + ". " if overlap_projects else "No exact overlap fingerprints found in the current read. ") +
+            "Source matching does not establish real payment duplication or project ownership; Basketball remains excluded.",
             "Each human mini-table is validated in place. Undated zero-value placeholders are excluded from the entry count.",
             "Sub-cent arithmetic display rounding is tolerated up to NPR 0.01, not silently corrected.",
         ],
@@ -217,6 +270,22 @@ def self_test():
         pass
     else:
         raise AssertionError("Missing subtotal must fail")
+    stale = [r[:] for r in sample]
+    stale[1][2] = 9
+    try:
+        read_project("test", stale)
+    except SourceError as exc:
+        assert str(exc) == "PROJECT_PARTY_SUMMARY_DIFFERENCE"
+    else:
+        raise AssertionError("Mismatched party summary must fail")
+    discount = [r[:] for r in sample]
+    discount[-2].append(1)
+    try:
+        read_project("test", discount)
+    except SourceError as exc:
+        assert str(exc) == "VENDOR_DETAIL_SUBTOTAL_DIFFERENCE"
+    else:
+        raise AssertionError("Mismatched discount must fail")
     print("FABIN NATIVE 8-TAB READ-ONLY SELF TEST PASS")
 
 
