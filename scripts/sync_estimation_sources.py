@@ -239,8 +239,31 @@ def publish_quantity_and_projects(session, registry, site):
     evidence = {'key': 'field-1', 'title': 'Fishtail Work Measurement Evidence',
                 'detail': 'Working measurement evidence; quantities require review',
                 'url': f'https://docs.google.com/spreadsheets/d/{fid}/edit'}
+    concrete_ids = [
+        ('concrete-slab', 'Slab Concrete QTO', '1yehFEcGcCw7lJnEnjrVPpXcnGfoqO_iNrWzEeFrvqB8'),
+        ('concrete-beam', 'Beam Concrete QTO', '1__mY3cmOFGwhJHDysm-bT4b764-NP5S8kt2D57mtQHg'),
+        ('concrete-shear', 'Shear Wall Concrete QTO', '1oJzHRmhKxb3uA6SiUTScz_G2oKkt5bwrU1zL_kQP--Q'),
+        ('concrete-stair', 'Staircase Concrete QTO', '1O9Mf89wlQr3gKlyyyZ6AEkfyom4qyMubYaJy08PPQWQ'),
+        ('concrete-footing', 'Footing Concrete QTO', '16iAPjM0cEyRTaxT4gu438HpCbtxKHLOLo9AalphMb9o'),
+        ('concrete-column', 'Column Concrete QTO', '1DMv_46e-l-TOj4l3qsyAhyRRnQynplmYqrx8gAABp_w'),
+        ('concrete-water-tank', 'Water Tank Concrete QTO', '171LITC8Yvtaj4pHTlyUMDmAuKCJZ9l1dgcKY5sWOTHs'),
+    ]
+    concrete_cards = []
+    for key, label, expected in concrete_ids:
+        fid, tab, mode = registry[key]
+        if fid != expected or tab != '00_PROJECT_SUMMARY' or mode != 'Concrete summary':
+            raise SourceHold('Concrete workbook registration changed')
+        try:
+            summary = sheet_rows(session, fid, "'00_PROJECT_SUMMARY'!A4:C39", label)
+            checked = bool(summary and summary[0] == ['Project key','Material / measure','Amount'])
+        except SourceHold:
+            checked = False
+        detail = 'Planning calculator; approved mix required; no purchase release'
+        detail += '; summary read verified' if checked else '; summary read not verified'
+        concrete_cards.append({'key':key,'title':label,'detail':detail,'url':f'https://docs.google.com/spreadsheets/d/{fid}/edit'})
     write_json(site / 'data/quantity-workbook-links.json', {'groups': [
         {'key': 'bbs', 'title': 'Reinforcement BBS', 'cards': cards},
+        {'key': 'concrete', 'title': 'Concrete Quantity Takeoff', 'cards': concrete_cards},
         {'key': 'quantity', 'title': 'Work measurement evidence', 'cards': [evidence]}]})
 
     def norm(name):
