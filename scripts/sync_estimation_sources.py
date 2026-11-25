@@ -236,8 +236,8 @@ def publish_quantity_and_projects(session, registry, site):
     fid, _, mode = registry['field-1']
     if fid != '1NvvOD7UUDAvWVnGOC33q2MOy3h6ZDoD1Y2es9l3dpiY' or mode != 'Restricted field source':
         raise SourceHold('Measurement evidence identity changed')
-    evidence = {'key': 'field-1', 'title': 'Fishtail Work Measurement Evidence',
-                'detail': 'Working measurement evidence; quantities require review',
+    evidence = {'key': 'field-1', 'title': 'Fishtail Measured Site Work — CLEAN',
+                'detail': 'Reviewed measurement entry and summary; original source evidence preserved',
                 'url': f'https://docs.google.com/spreadsheets/d/{fid}/edit'}
     concrete_ids = [
         ('concrete-slab', 'Slab Concrete QTO', '1yehFEcGcCw7lJnEnjrVPpXcnGfoqO_iNrWzEeFrvqB8'),
