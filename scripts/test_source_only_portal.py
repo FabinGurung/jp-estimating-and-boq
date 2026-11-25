@@ -25,6 +25,7 @@ with TemporaryDirectory() as tmp:
         'quantity-workbook-links.json':dict(groups=quantity),
         'estimating-project-directory.json':dict(schema='jp.estimating.project-directory.v1',groups=[],readAtUtc='2026-11-24T00:00:00Z'),
         'estimating-source-receipt.json':dict(reinforcement=[dict(item=x,sourceRead=True) for x in ['Slab','Beam','Shear wall','Staircase','Footing','Column','Water Tank']])}
+    payloads['clean-wage-summaries.json'] = dict(schema='jp.clean-wage-summaries.v1', sections=[], readAtUtc='2026-11-25T00:00:00Z')
     for name,value in payloads.items():
         (data/name).write_text(json.dumps(value))
     (site/'measurements-boq.html').write_text('Archived')
@@ -39,6 +40,11 @@ with TemporaryDirectory() as tmp:
     assert 'id="homeOverview"' in (site/'index.html').read_text()
     assert 'id="approvedWorkbookGalleries"' not in (site/'index.html').read_text()
     assert 'id="registerDirectory"' in (site/'finance.html').read_text()
+    assert 'id="wageSummaries"' in (site/'finance.html').read_text()
+    assert (data/'clean-wage-summaries.json').is_file()
+    assert (site/'particle-study.html').is_file()
+    assert 'View all ' not in (site/'portal-directory.js').read_text()
+    assert 'Work keyword category' in (site/'portal-rate-evidence.js').read_text()
     assert 'id="approvedWorkbookGalleries"' not in (site/'finance.html').read_text()
     assert 'id="rateEvidence"' in (site/'rate-sources.html').read_text()
     assert (data/'contractor-summary-v0.1/page-005.jpg').is_file()

@@ -40,7 +40,7 @@ def sheet_rows(session, file_id, a1, label):
                     {'valueRenderOption': 'UNFORMATTED_VALUE'}, label).get('values', [])
 
 
-def read_registry(session):
+def read_registry(session, worker_codes=None):
     response = get_json(session, 'https://www.googleapis.com/drive/v3/files', {
         'q': f"name = '{INDEX_TITLE}' and mimeType = '{SHEET_MIME}' and trashed = false",
         'fields': 'nextPageToken,files(id,name)', 'pageSize': 100,
@@ -55,7 +55,7 @@ def read_registry(session):
     for row in rows[1:]:
         if not row:
             continue
-        key, _, kind, link, tab, mode, _ = (row + [''] * 7)[:7]
+        key, title, kind, link, tab, mode, _ = (row + [''] * 7)[:7]
         reference = LOCATOR.fullmatch(link)
         if not re.fullmatch(r'[a-z0-9-]+', key) or key in registry or not reference:
             raise SourceHold('Invalid or duplicate source index entry')
@@ -63,6 +63,15 @@ def read_registry(session):
         if kind != expected_kind:
             raise SourceHold('Source index type mismatch')
         registry[key] = (reference[2], tab, mode)
+        if worker_codes is not None and re.fullmatch(r'w\d{2}', key):
+            # Match against private index titles in memory; never publish the names.
+            name = re.split(r'\s+[-—–]\s+', title, maxsplit=1)[0]
+            if not name.upper().startswith(key.upper()+' '):
+                raise SourceHold('Workforce source title code mismatch')
+            worker = re.sub(r'\s+', '_', name[len(key)+1:].strip()).casefold()
+            if not worker or worker in worker_codes:
+                raise SourceHold('Workforce source mapping ambiguous')
+            worker_codes[worker] = key.upper()
     return registry
 
 
@@ -164,11 +173,11 @@ WORKBOOK_GROUPS = (
         ('finance-5', 'Krishna Kumar Gupta — Payments V1.1', 'Source reconciliation · restricted original', 'Finance reader'),
         ('funding', 'Project Funding — v1.1', 'Archived historical funding-party attribution', 'Archived'),
     )),
-    ('wages', 'Wage List 11 — working historical references', (
-        ('historical-work', 'Work — CLEAN v1.1', 'Working reference · historical conversion', 'Restricted reference'),
-        ('historical-attendance', 'Attendance — CLEAN v1.1', 'Working reference · historical conversion', 'Restricted reference'),
-        ('historical-wage', 'Wage — CLEAN v1.1', 'Working reference · historical conversion', 'Restricted reference'),
-        ('historical-payment', 'Payment — CLEAN v1.1', 'Reviewed payment reference · historical conversion', 'Existing payment reader'),
+    ('wages', 'Wage List 11 — CLEAN', (
+        ('historical-work', 'Work — CLEAN v1.1', 'Clean working register', 'Restricted reference'),
+        ('historical-attendance', 'Attendance — CLEAN v1.1', 'Clean working register', 'Restricted reference'),
+        ('historical-wage', 'Wage — CLEAN v1.1', 'Clean working register', 'Restricted reference'),
+        ('historical-payment', 'Payment — CLEAN v1.1', 'Clean payment register', 'Existing payment reader'),
     )),
     ('workforce', 'Individual workforce workbooks', tuple(
         (f'w{i:02}', f'W{i:02}', 'Money and Goods by Project Site' if i <= 10 else 'Original Attendance by Project Site', 'Restricted field source')
@@ -272,7 +281,7 @@ def publish_quantity_and_projects(session, registry, site):
         if len(r) < 5 or not safe_name(r[0]) or not safe_name(r[4]) or not numeric(r[1]):
             raise SourceHold('Invalid Fabin project summary')
         org = aliases.get(norm(r[4]), r[4])
-        add_project(r[0], org, 'Fabin Gurung payments', {'recordedNpr': r[1], 'state': 'Source-reported payment; not certified'})
+        add_project(r[0], org, 'Fabin Gurung payments', {'recordedNpr': r[1], 'metrics': {'Amount NPR': r[1], 'QR': r[2], 'Discount NPR': r[3]}, 'range': 'Total!A:E', 'state': 'Source-reported payment; not certified'})
     kkg = rows('finance-5', "'Total'!A1:D")
     if not kkg or kkg[0] != ['Project','Amount (NPR)','Discount (NPR)','QR (NPR)']:
         raise SourceHold('KKG project summary headers changed')
@@ -284,7 +293,7 @@ def publish_quantity_and_projects(session, registry, site):
         # Existing KKG source adapter explicitly establishes Rohini and Bishal Paija.
         name = '14 Bishal Paija' if norm(r[0]) == 'bishal paija' else r[0]
         add_project(name, 'Rohini Engineering and Builders', 'Krishna Kumar Gupta payments',
-                    {'recordedNpr': r[1], 'state': 'Source-reported payment; not certified'})
+                    {'recordedNpr': r[1], 'metrics': {'Amount NPR': r[1], 'Discount NPR': r[2], 'QR': r[3]}, 'range': 'Total!A:D', 'state': 'Source-reported payment; not certified'})
 
     # Candidate labels are references only. No vendor amounts or contractor names are exported.
     # An exact matching project label can be linked to a recorded organization, not an inferred ownership claim.
@@ -303,6 +312,21 @@ def publish_quantity_and_projects(session, registry, site):
             raise SourceHold('Invalid candidate ID')
         c = candidates.setdefault(key, {'name': canonical or label, 'labels': set(), 'id': cid})
         c['labels'].add(label)
+    # Read the actual human-maintained portfolio rollup; never sum individual bills.
+    rollup = rows('finance-3', "'PROJECT_SUMMARY_HUB'!B3:E55")
+    if not rollup or rollup[0] != ['Project Code','Project Name','Total Billed (NPR)','Active Vendor Count']:
+        raise SourceHold('Vendor executive summary header changed')
+    vendor_totals = {}
+    for r in rollup[1:]:
+        if not r or r[0] == 'Total':
+            break
+        if len(r) != 4 or not re.fullmatch(r'prj_\d{6}', r[0]) or not numeric(r[2]) or not numeric(r[3]):
+            raise SourceHold('Invalid vendor executive summary row')
+        cid = r[0].replace('_','-').upper()
+        if cid in vendor_totals:
+            raise SourceHold('Duplicate vendor project total')
+        vendor_totals[cid] = {'Total Billed (NPR)': r[2], 'Active Vendor Count': r[3]}
+    candidate_projects = {}
     for c in candidates.values():
         matches = {existing(n) for n in c['labels'] | {c['name']}} - {'Organization not established'}
         org = next(iter(matches)) if len(matches) == 1 else 'Organization not established'
@@ -318,20 +342,85 @@ def publish_quantity_and_projects(session, registry, site):
         # Select a known existing payment project only if there is a unique exact label match.
         exact = [p for (o,n),p in projects.items() if o == org and n in {norm(s) for s in c['labels'] | {c['name']}}]
         name = exact[0]['name'] if len(exact) == 1 else c['name']
-        add_project(name, org, 'Vendor Bills', {'state': ('Organization confirmed by owner, 24 Nov 2026; invoice mapping remains provisional' if owner_confirmed else 'Candidate project crosswalk; not invoice approval')})
+        detail = {'state': ('Organization confirmed by owner, 24 Nov 2026; invoice mapping remains provisional' if owner_confirmed else 'Candidate project crosswalk; not invoice approval')}
+        if c['id'] in vendor_totals:
+            detail.update(metrics=vendor_totals[c['id']], range='PROJECT_SUMMARY_HUB!B:E')
+        project = add_project(name, org, 'Vendor Bills', detail)
+        if c['id']:
+            candidate_projects[c['id']] = (org, project['name'])
+    if not set(vendor_totals).issubset(candidate_projects):
+        raise SourceHold('Vendor project summary has an unmapped project ID')
     contractor = rows('finance-2', "'CT_PROJECT_SUMMARY'!A1:I")
     if not contractor or contractor[0][:3] != ['Project As Recorded','Candidate Project ID','Contractor Source']:
         raise SourceHold('Contractor summary header changed')
     for r in contractor[1:]:
         if not r or not r[0]:
             continue
-        add_project(r[0], existing(r[0]), 'Contractor Bills', {'state': 'Recorded claim reference; not certified or paid'})
+        if len(r) < 9 or not numeric(r[3]) or not numeric(r[4]) or not numeric(r[5]) or not numeric(r[6]):
+            raise SourceHold('Contractor project summary numeric cells changed')
+        org, name = candidate_projects.get(r[1], (existing(r[0]), r[0]))
+        add_project(name, org, 'Contractor Bills', {'metrics': {
+            'Claimed Amount (NPR, provisional)': r[3], '33-Line Sum (NPR)': r[4],
+            'Difference NPR': r[5], 'Primary Work Lines': r[6]},
+            'range': 'CT_PROJECT_SUMMARY!A:I', 'state': 'Recorded claim reference; not certified or paid'})
     payload = {'schema': 'jp.estimating.project-directory.v1',
                'readAtUtc': datetime.now(timezone.utc).isoformat(),
                'groups': [{'organization': k, 'projects': v} for k,v in groups.items()],
                'note': 'Separate source-reported records; no combined expenditure or certified amounts.'}
     write_json(site / 'data/estimating-project-directory.json', payload)
     print('Project directory: source-backed organization groups and separate source references:', sum(len(v) for v in groups.values()))
+
+
+
+def publish_clean_wages(session, registry, site, codes):
+    """Project exact existing Summary cells only, never recalculate wage or payment totals."""
+    specs = [
+        ('historical-work','Work',['Worker ID','Worker','Work/allocation records','Distinct dates','Compact work'],
+         ['Project site','Work/allocation records','Workers'],4),
+        ('historical-attendance','Attendance',['Worker ID','Worker','Records','Worked dates','Regular hours recorded','OT hours recorded'],
+         ['Project site','Records','Workers','Worked worker-days','Regular hours','OT hours'],5),
+        ('historical-wage','Wage',['Worker ID','Worker','Records','Base wage NPR','OT wage NPR','Gross wage NPR'],
+         ['Project site','Records','Workers','Base wage NPR','OT wage NPR','Gross wage NPR'],5),
+        ('historical-payment','Payment',['Worker ID','Worker','Payment records','Payment NPR'],
+         ['Project site','Payment records','Workers','Payment NPR'],3),
+    ]
+    data = []
+    if len(codes) != 21:
+        raise SourceHold('Expected 21 unique workforce codes from private Source Index')
+    for key, title, headers, site_headers, width in specs:
+        rows = sheet_rows(session, registry[key][0], "'Summary'!A1:F250", title+' clean summary')
+        if not rows or rows[0][:len(headers)] != headers:
+            raise SourceHold('Clean summary header changed: '+title)
+        total = [r for r in rows if r and r[0]=='TOTAL']
+        if len(total)!=1:
+            raise SourceHold('Clean summary TOTAL missing or ambiguous: '+title)
+        cells = (total[0]+['']*len(headers))[:len(headers)]
+        totals = {h:v for h,v in zip(headers[2:],cells[2:]) if numeric(v)}
+        start = next((i for i,r in enumerate(rows) if r and r[0]=='BY PROJECT SITE'),None)
+        if start is None or rows[start+1][:len(site_headers)] != site_headers:
+            raise SourceHold('Clean project-site summary header changed: '+title)
+        sites=[]
+        for r in rows[start+2:]:
+            if not r or not r[0] or str(r[0]).upper()=='TOTAL' or len(r)<2 or not numeric(r[1]):
+                break
+            if not isinstance(r[0],str) or PRIVATE.search(r[0]):
+                raise SourceHold('Invalid clean site label')
+            sites.append((r+['']*len(site_headers))[:len(site_headers)])
+        # Only coded worker work/attendance quantities, no personal names or individual pay amounts.
+        workers=[]
+        if title in ('Work','Attendance'):
+            for r in rows[1:]:
+                if not r or not r[0] or r[0]=='TOTAL':
+                    break
+                if str(r[0]).casefold() not in codes:
+                    continue
+                values = (r+['']*len(headers))[:len(headers)]
+                workers.append([codes[str(r[0]).casefold()]]+values[2:4])
+        data.append({'key':key,'title':title,'range':'Summary!A:F','totals':totals,
+                     'siteHeaders':site_headers,'sites':sites,'workers':workers,
+                     'workerHeaders':['Worker code']+headers[2:4] if workers else []})
+    write_json(site/'data/clean-wage-summaries.json', {'schema':'jp.clean-wage-summaries.v1',
+                'readAtUtc':datetime.now(timezone.utc).isoformat(),'sections':data})
 
 
 def sync(site):
@@ -343,9 +432,11 @@ def sync(site):
         'https://www.googleapis.com/auth/spreadsheets.readonly',
     ])
     with AuthorizedSession(credentials) as session:
-        registry = read_registry(session)
+        worker_codes = {}
+        registry = read_registry(session, worker_codes)
         publish_workbook_links(registry, site)
         publish_quantity_and_projects(session, registry, site)
+        publish_clean_wages(session, registry, site, worker_codes)
         bbs = []
         for key, label in BBS.items():
             file, tab, mode = registry[key]
