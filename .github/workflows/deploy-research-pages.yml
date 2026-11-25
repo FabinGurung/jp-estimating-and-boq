@@ -328,9 +328,28 @@ jobs:
           done
           echo "::error::Pages artifact metadata not visible after bounded retries"
           exit 1
+      - name: Allow Pages artifact index to settle
+        run: sleep 30
       - name: Deploy static website
         id: deployment
+        continue-on-error: true
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Wait before retrying Pages publication
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 45
+      - name: Retry publication using the same unique artifact
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Require successful Pages publication
+        if: always()
+        run: |
+          if [ "${{ steps.deployment.outcome }}" != success ] && [ "${{ steps.deployment_retry.outcome }}" != success ]; then
+            echo "::error::Pages publication not confirmed"
+            exit 1
+          fi
 
