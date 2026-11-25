@@ -261,10 +261,14 @@ def publish_quantity_and_projects(session, registry, site):
         detail = 'Planning calculator; approved mix required; no purchase release'
         detail += '; summary read verified' if checked else '; summary read not verified'
         concrete_cards.append({'key':key,'title':label,'detail':detail,'url':f'https://docs.google.com/spreadsheets/d/{fid}/edit'})
+    material_id, material_tab, material_mode = registry['project-materials']
+    if material_id != '1URJiDyCKxC8Y6TzQmhUwSMQByspG0F9Go4uVwck6VUI' or material_tab != '00_PROJECTS' or material_mode != 'Manual summary':
+        raise SourceHold('Project materials workbook identity changed')
+    material_card = {'key':'project-materials','title':'Project Material & Work Summary','detail':'Values-only manual snapshot; no purchase release','url':f'https://docs.google.com/spreadsheets/d/{material_id}/edit'}
     write_json(site / 'data/quantity-workbook-links.json', {'groups': [
         {'key': 'bbs', 'title': 'Reinforcement BBS', 'cards': cards},
         {'key': 'concrete', 'title': 'Concrete Quantity Takeoff', 'cards': concrete_cards},
-        {'key': 'quantity', 'title': 'Work measurement evidence', 'cards': [evidence]}]})
+        {'key': 'quantity', 'title': 'Work measurement evidence', 'cards': [material_card, evidence]}]})
 
     def norm(name):
         return ' '.join(re.sub(r'[_-]+', ' ', name.strip().casefold()).split())
