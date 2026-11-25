@@ -40,7 +40,7 @@ def sheet_rows(session, file_id, a1, label):
                     {'valueRenderOption': 'UNFORMATTED_VALUE'}, label).get('values', [])
 
 
-def read_registry(session):
+def read_registry(session, worker_codes=None):
     response = get_json(session, 'https://www.googleapis.com/drive/v3/files', {
         'q': f"name = '{INDEX_TITLE}' and mimeType = '{SHEET_MIME}' and trashed = false",
         'fields': 'nextPageToken,files(id,name)', 'pageSize': 100,
@@ -55,7 +55,7 @@ def read_registry(session):
     for row in rows[1:]:
         if not row:
             continue
-        key, _, kind, link, tab, mode, _ = (row + [''] * 7)[:7]
+        key, title, kind, link, tab, mode, _ = (row + [''] * 7)[:7]
         reference = LOCATOR.fullmatch(link)
         if not re.fullmatch(r'[a-z0-9-]+', key) or key in registry or not reference:
             raise SourceHold('Invalid or duplicate source index entry')
@@ -63,6 +63,15 @@ def read_registry(session):
         if kind != expected_kind:
             raise SourceHold('Source index type mismatch')
         registry[key] = (reference[2], tab, mode)
+        if worker_codes is not None and re.fullmatch(r'w\d{2}', key):
+            # Match against private index titles in memory; never publish the names.
+            name = re.split(r'\s+[-—–]\s+', title, maxsplit=1)[0]
+            if not name.upper().startswith(key.upper()+' '):
+                raise SourceHold('Workforce source title code mismatch')
+            worker = re.sub(r'\s+', '_', name[len(key)+1:].strip()).casefold()
+            if not worker or worker in worker_codes:
+                raise SourceHold('Workforce source mapping ambiguous')
+            worker_codes[worker] = key.upper()
     return registry
 
 
@@ -363,7 +372,7 @@ def publish_quantity_and_projects(session, registry, site):
 
 
 
-def publish_clean_wages(session, registry, site):
+def publish_clean_wages(session, registry, site, codes):
     """Project exact existing Summary cells only, never recalculate wage or payment totals."""
     specs = [
         ('historical-work','Work',['Worker ID','Worker','Work/allocation records','Distinct dates','Compact work'],
@@ -376,8 +385,8 @@ def publish_clean_wages(session, registry, site):
          ['Project site','Payment records','Workers','Payment NPR'],3),
     ]
     data = []
-    worker_ids = ['Roj_Koirala','Subash_Tamang','Ram_Bahadur_Rokka','Bishwash_Sunar','Jit_Pariyar','Prakash_Thapa','Sunita_Thapa','Arjun_Sunar','Kopila_Chaudhary','Rajan_Chaudhary','Bishal_Rana','Sapana_Rana','Ramesh_Chaudhary','Umeesh_Chaudhary','Hari_Chaudhary','Kumari_Kutwal','Suresh_Chaudhary','Pramod_Chaudhary','Prashant_Chaudhary','Dev_Chaudhary','Dinesh_Chaudhary']
-    codes = {w: f'W{i:02}' for i,w in enumerate(worker_ids,1)}
+    if len(codes) != 21:
+        raise SourceHold('Expected 21 unique workforce codes from private Source Index')
     for key, title, headers, site_headers, width in specs:
         rows = sheet_rows(session, registry[key][0], "'Summary'!A1:F250", title+' clean summary')
         if not rows or rows[0][:len(headers)] != headers:
@@ -403,10 +412,10 @@ def publish_clean_wages(session, registry, site):
             for r in rows[1:]:
                 if not r or not r[0] or r[0]=='TOTAL':
                     break
-                if r[0] not in codes:
+                if str(r[0]).casefold() not in codes:
                     continue
                 values = (r+['']*len(headers))[:len(headers)]
-                workers.append([codes[r[0]]]+values[2:4])
+                workers.append([codes[str(r[0]).casefold()]]+values[2:4])
         data.append({'key':key,'title':title,'range':'Summary!A:F','totals':totals,
                      'siteHeaders':site_headers,'sites':sites,'workers':workers,
                      'workerHeaders':['Worker code']+headers[2:4] if workers else []})
@@ -423,10 +432,11 @@ def sync(site):
         'https://www.googleapis.com/auth/spreadsheets.readonly',
     ])
     with AuthorizedSession(credentials) as session:
-        registry = read_registry(session)
+        worker_codes = {}
+        registry = read_registry(session, worker_codes)
         publish_workbook_links(registry, site)
         publish_quantity_and_projects(session, registry, site)
-        publish_clean_wages(session, registry, site)
+        publish_clean_wages(session, registry, site, worker_codes)
         bbs = []
         for key, label in BBS.items():
             file, tab, mode = registry[key]
