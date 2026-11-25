@@ -21,7 +21,7 @@ with TemporaryDirectory() as tmp:
     core=[dict(key=k,title=t,cards=cards([item for item in e if item[3] != 'Archived'])) for k,t,e in WORKBOOK_GROUPS]
     quantity=[dict(key='bbs',title='BBS',cards=cards([('bbs-slab','Slab BBS',''),('bbs-beam','Beam BBS',''),('bbs-shear','Shear Wall BBS',''),('bbs-stair','Staircase BBS',''),('bbs-footing','Footing BBS',''),('bbs-column','Column BBS',''),('bbs-water-tank','Water Tank BBS','')])),
               dict(key='concrete',title='Concrete QTO',cards=cards([(f'concrete-{key}',key+' concrete','Planning only') for key in ('slab','beam','shear','stair','footing','column','water-tank')])),
-              dict(key='quantity',title='Measurement',cards=cards([('field-1','Measurement','')]))]
+              dict(key='quantity',title='Measurement',cards=cards([('project-materials','Project materials','Manual snapshot'),('field-1','Measurement','')]))]
     payloads={'estimating-workbook-links.json':dict(schema='jp.estimating.workbook-links.v1',groups=core),
         'quantity-workbook-links.json':dict(groups=quantity),
         'estimating-project-directory.json':dict(schema='jp.estimating.project-directory.v1',groups=[],readAtUtc='2026-11-24T00:00:00Z'),
@@ -34,7 +34,7 @@ with TemporaryDirectory() as tmp:
     (site/'projects'/'old.html').write_text('Archived')
     stage(site)
     assert len(json.loads((data/'home-links.json').read_text())['groups'])==6
-    assert sum(len(g['cards']) for g in json.loads((data/'home-links.json').read_text())['groups'])==47
+    assert sum(len(g['cards']) for g in json.loads((data/'home-links.json').read_text())['groups'])==48
     assert sum(len(g['cards']) for g in json.loads((data/'rates-links.json').read_text())['groups'])==2
     assert {c['key'] for g in json.loads((data/'quantity-links.json').read_text())['groups'] for c in g['cards']} >= {'bbs-column','bbs-footing','bbs-water-tank'}
     assert any(c['key']=='bbs-water-tank' and 'no purchase release' in c['detail'] for g in json.loads((data/'quantity-links.json').read_text())['groups'] for c in g['cards'])
@@ -67,4 +67,4 @@ with TemporaryDirectory() as tmp:
     assert 'source-gallery.js' not in (site/'index.html').read_text()
     assert not (site/'measurements-boq.html').exists()
     assert not (site/'projects').exists()
-print('Compact portal fixture: 47 links, 2 rates only, archived routes removed, single navigation.')
+print('Compact portal fixture: 48 links, 2 rates only, archived routes removed, single navigation.')

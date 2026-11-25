@@ -261,10 +261,14 @@ def publish_quantity_and_projects(session, registry, site):
         detail = 'Planning calculator; approved mix required; no purchase release'
         detail += '; summary read verified' if checked else '; summary read not verified'
         concrete_cards.append({'key':key,'title':label,'detail':detail,'url':f'https://docs.google.com/spreadsheets/d/{fid}/edit'})
+    material_id, material_tab, material_mode = registry['project-materials']
+    if material_id != '1URJiDyCKxC8Y6TzQmhUwSMQByspG0F9Go4uVwck6VUI' or material_tab != '00_PROJECTS' or material_mode != 'Manual summary':
+        raise SourceHold('Project materials workbook identity changed')
+    material_card = {'key':'project-materials','title':'Project Material & Work Summary','detail':'Values-only manual snapshot; no purchase release','url':f'https://docs.google.com/spreadsheets/d/{material_id}/edit'}
     write_json(site / 'data/quantity-workbook-links.json', {'groups': [
         {'key': 'bbs', 'title': 'Reinforcement BBS', 'cards': cards},
         {'key': 'concrete', 'title': 'Concrete Quantity Takeoff', 'cards': concrete_cards},
-        {'key': 'quantity', 'title': 'Work measurement evidence', 'cards': [evidence]}]})
+        {'key': 'quantity', 'title': 'Work measurement evidence', 'cards': [material_card, evidence]}]})
 
     def norm(name):
         return ' '.join(re.sub(r'[_-]+', ' ', name.strip().casefold()).split())
@@ -463,7 +467,10 @@ def sync(site):
             publish_clean_wages(session, registry, site, worker_codes)
         except SourceHold as exc:
             print('Optional CLEAN summaries held:', str(exc))
-            write_json(site/'data/clean-wage-summaries.json', {'schema':'jp.clean-wage-summaries.v1','readAtUtc':datetime.now(timezone.utc).isoformat(),'sections':[], 'status':'HOLD — source access or schema check failed; open the original workbooks.'})
+            snapshot = json.loads((ROOT/'data/clean-wage-summary-manual.v1.json').read_text())
+            if snapshot.get('schema') != 'jp.clean-wage-summaries.v1' or snapshot.get('sourceMode') != 'MANUAL_CONNECTOR_SNAPSHOT' or len(snapshot.get('sections', [])) != 4:
+                raise SourceHold('Invalid manual CLEAN summary snapshot')
+            write_json(site/'data/clean-wage-summaries.json', snapshot)
         bbs = []
         for key, label in BBS.items():
             file, tab, mode = registry[key]
