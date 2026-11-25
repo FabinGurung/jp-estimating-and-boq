@@ -1,0 +1,89 @@
+name: Publish Estimation M02 quantity studio milestone
+on:
+  push:
+    branches:
+      - research/open-estimation-engine-v0.1
+    paths:
+      - '.github/workflows/publish-est-m02-quantity-studio.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: est-m02-quantity-studio
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SOURCE_SHA: 40fc903d7ca9efa3eb57863aff759f28d729e79c
+      MILESTONE_TAG: est-m02-quantity-studio-20261125
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact successful source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$SOURCE_SHA^{commit}"
+          git merge-base --is-ancestor "$SOURCE_SHA" "$GITHUB_SHA"
+          for run in 45537238171 45537238180; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '{conclusion,head_sha}' |
+              jq -e --arg sha "$SOURCE_SHA" '.conclusion=="success" and .head_sha==$sha' >/dev/null
+          done
+      - name: Create immutable annotated tag and publish milestone
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --tags origin "refs/tags/$MILESTONE_TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$MILESTONE_TAG:refs/tags/$MILESTONE_TAG"
+            test "$(git rev-parse "$MILESTONE_TAG^{commit}")" = "$SOURCE_SHA"
+            test "$(git cat-file -t "$MILESTONE_TAG")" = tag
+          else
+            git tag -a "$MILESTONE_TAG" "$SOURCE_SHA" -m "Estimation M02 — Cost & Quantity Studio; CI and Pages passed; engineering debts retained"
+            git push origin "refs/tags/$MILESTONE_TAG"
+          fi
+          cat > "$RUNNER_TEMP/m02-notes.md" <<'M02_NOTES'
+          # Estimation M02 — Cost & Quantity Studio
+          
+          Checkpoint: 25 November 2026 (Asia/Kathmandu)
+          
+          Frozen source: 40fc903d7ca9efa3eb57863aff759f28d729e79c
+          
+          ## Delivered
+          - 48 registered Google Sheets links; original workbook identities and restricted sharing preserved.
+          - Seven reinforcement BBS and seven concrete QTO modules in separate curved galleries.
+          - Concrete engines: 30 project tabs, M20 planning default, grade dropdowns, editable design coefficients, status and HOLD safeguards.
+          - Central project material and work summary: seven canonical project tabs; manual or AI values-only entry.
+          - Fishtail measured site work: V000003 CLEAN entry, three-column summary and unit guide; 1,156 original measurement records unchanged. Separate website heading.
+          - Dated manual CLEAN wage aggregate fallback, not a continuously synchronized feed.
+          - Existing calculator mascot and particle study preserved.
+          
+          ## Verification
+          - Estimation CI: https://github.com/FabinGurung/jp-estimating-and-boq/actions/runs/45537238171
+          - Pages deployment: https://github.com/FabinGurung/jp-estimating-and-boq/actions/runs/45537238180
+          - Both successful on the frozen source commit.
+          - Native Sheets readback for seven concrete modules and 30 project tabs; isolated grade-switching and HOLD tests; Fishtail synthetic grouping and duplicate exclusion tests.
+          - PRE/POST snapshots: https://drive.google.com/drive/folders/1hoXx3kpQv2Ex-UE0gWyZWyagyo2cRI2r
+          - Fishtail history: https://drive.google.com/drive/folders/1GGgYnYgI6mHbI8EyMQzpGOYLOEZvtWx_
+          
+          ## Open debts and release boundary
+          - Concrete: nine preliminary totals, ten partial scopes, eleven geometry-pending scopes; no engineering certification or purchase release implied. Drawing reconciliation and verified mix designs remain required.
+          - Full PDF item extraction and verification remain in the separate rate workstream.
+          - Fishtail semantic measurement extraction remains pending; clean entry table starts empty.
+          - Manual wage snapshot requires manual refresh; automated source identity permission remains unresolved.
+          - Independent live browser/mobile visual verification remains outstanding.
+          - Live Google Sheets are mutable authorities, not frozen by the Git tag; Drive snapshots preserve checkpoint evidence. No central A7 registry modification is claimed.
+          
+          Website: https://fabingurung.github.io/jp-estimating-and-boq/
+          Drive root: https://drive.google.com/drive/folders/126AVR4iacXV3bwK8St66QrUFrYqlRtWS
+          M02_NOTES
+          if ! gh release view "$MILESTONE_TAG" >/dev/null 2>&1; then
+            gh release create "$MILESTONE_TAG" --verify-tag --target "$SOURCE_SHA" --title "Estimation M02 — Cost & Quantity Studio" --prerelease --notes-file "$RUNNER_TEMP/m02-notes.md"
+          fi
+          gh release view "$MILESTONE_TAG" --json tagName,isPrerelease,url
