@@ -1,0 +1,25 @@
+(() => {
+"use strict";
+const root=document.getElementById("vendorRateExplorer"); if(!root)return;
+const el=(tag,txt,cl)=>{const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cl)n.className=cl;return n};
+const money=n=>n==null?"HOLD":new Intl.NumberFormat("en-IN",{minimumFractionDigits:0,maximumFractionDigits:2}).format(n);
+const css=el("style");css.textContent="#vendorRateExplorer .vr-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:10px;margin:12px 0}#vendorRateExplorer label{display:grid;gap:4px;font-size:.85rem;font-weight:650;min-width:0}#vendorRateExplorer input,#vendorRateExplorer select{width:100%;min-width:0;max-width:100%;padding:9px;border:1px solid #a8bab0;border-radius:7px;background:white;color:#183b31;font:inherit}#vendorRateExplorer .vr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:10px}#vendorRateExplorer .vr-card{padding:12px;border:1px solid #d5ded6;border-radius:10px;background:#fff;min-width:0}#vendorRateExplorer .vr-card h3{font-size:1rem;margin:0;overflow-wrap:anywhere}#vendorRateExplorer table{width:100%;border-collapse:collapse;font-size:.84rem;table-layout:fixed}#vendorRateExplorer td,#vendorRateExplorer th{text-align:left;overflow-wrap:anywhere;vertical-align:top;padding:7px 4px;border-top:1px solid #e1e8e1}#vendorRateExplorer td:last-child,#vendorRateExplorer th:last-child{text-align:right;font-variant-numeric:tabular-nums}#vendorRateExplorer .vr-low{color:#146344;font-weight:750}#vendorRateExplorer .vr-hold{color:#a35c00;font-weight:650}";document.head.append(css);
+fetch("data/vendor-contractor-rates.v1.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("source unavailable");return r.json()}).then(data=>{
+if(data.schema!=="jp.vendor-contractor-rates.v1"||data.sourceMode!=="AUTHENTICATED_SHEET_READ"||!Array.isArray(data.observations))throw Error("source validation");
+root.replaceChildren();const rows=data.observations,form=el("div",undefined,"vr-filters"),controls={};
+const uniq=key=>[...new Set(rows.map(r=>r[key]))].sort();
+const select=(key,title,opts)=>{const l=el("label",title),s=el("select");for(const [v,t] of opts){let o=el("option",t);o.value=v;s.append(o)}l.append(s);form.append(l);controls[key]=s;s.addEventListener("change",render)};
+const input=(key,title,ph)=>{let l=el("label",title),i=el("input");i.type="search";i.placeholder=ph;l.append(i);form.append(l);controls[key]=i;i.addEventListener("input",render)};
+for(const [k,t] of [["vendor","Vendor / contractor"],["category","Material / work category"],["date","Quotation date"],["unit","Measurement unit"]])select(k,t,[["","All"],...uniq(k).map(x=>[x,x])]);
+input("item","Item description","Search item");input("spec","Size / specification","e.g. 110 mm, 3/4");select("basis","Rate basis",[["gross","Original quoted rate"],["effective","Effective rate"]]);
+const reset=el("button","Reset filters");reset.type="button";reset.addEventListener("click",()=>{for(const [k,c] of Object.entries(controls))c.value=k==="basis"?"gross":"";render()});form.append(reset);
+const status=el("p",undefined,"caption"),grid=el("div",undefined,"vr-grid");root.append(form,status,grid);
+function render(){
+const basis=controls.basis.value,selected=rows.filter(r=>["vendor","category","date","unit"].every(k=>!controls[k].value||r[k]===controls[k].value)&&["item","spec"].every(k=>!controls[k].value||r.item.toLowerCase().includes(controls[k].value.trim().toLowerCase())));
+status.textContent=selected.length+" observations · "+data.vendors+" registered vendors · authenticated source read "+data.readAtUtc+" · NPR per quoted unit";
+grid.replaceChildren();const groups=new Map();for(const r of selected){let k=[r.category,r.item,r.unit].join("\u001f");if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)}
+for(const g of groups.values()){const r=g[0],card=el("article",undefined,"vr-card");card.append(el("h3",r.item),el("p",r.category+" · "+r.unit,"caption"));const table=el("table"),head=el("thead"),tr=el("tr");tr.append(el("th","Vendor"),el("th","Basis / date"),el("th","NPR"));head.append(tr);table.append(head);const body=el("tbody"),finite=g.filter(x=>Number.isFinite(x[basis])),canCompare=finite.length>1&&!r.unit.toLowerCase().includes("pipe length"),min=canCompare?Math.min(...finite.map(x=>x[basis])):null;
+for(const x of g){const tr=el("tr"),v=x[basis],basisLabel=basis==="gross"?"Quoted · "+x.date:x.status+" · "+x.date;tr.append(el("td",x.vendor),el("td",basisLabel),el("td",money(v),v==null?"vr-hold":min!==null&&v===min?"vr-low":""));body.append(tr)}table.append(body);card.append(table);if(canCompare)card.append(el("p","Green = lower observed rate; specification equivalence is unverified.","caption"));grid.append(card)}if(!selected.length)grid.append(el("p","No matching quotation observations."));
+}render();
+}).catch(()=>{root.textContent="HOLD — authorized vendor quotation summary unavailable. Open the Source Index for the working register.";});
+})();

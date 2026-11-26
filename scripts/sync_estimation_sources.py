@@ -450,6 +450,60 @@ def publish_clean_wages(session, registry, site, codes):
                 'readAtUtc':datetime.now(timezone.utc).isoformat(),'sections':data})
 
 
+
+def publish_vendor_rates(session, registry, site):
+    """Only owner-authorized normalized rate cells; never read the source images."""
+    file_id, tab, mode = registry['vendor-contractor-rates']
+    if tab != '99_PUBLIC_SUMMARY' or mode != 'Vendor rate summaries':
+        raise SourceHold('Vendor rate publication contract changed')
+    rows = sheet_rows(session, file_id, "'99_PUBLIC_SUMMARY'!A1:E2000", 'Vendor rate summaries')
+    if not rows or rows[0] != ['Vendor','Category','Item','Unit','Gross rate (NPR)']:
+        raise SourceHold('Vendor rate summary headers changed')
+    def safe(value):
+        return isinstance(value, str) and 0 < len(value) <= 180 and not PRIVATE.search(value)
+    vendors, observations, seen = {}, [], set()
+    for row in rows[1:]:
+        if not row:
+            continue
+        vendor, category, item, unit, rate = (row + [None]*5)[:5]
+        if not all(safe(x) for x in (vendor, category, item, unit)):
+            raise SourceHold('Invalid public rate text')
+        rate = None if rate == '' else rate
+        if category == '@vendor':
+            if vendor in vendors or not (item == 'Unknown' or re.fullmatch(r'\d{4}-\d{2}-\d{2}', item)):
+                raise SourceHold('Duplicate vendor metadata or invalid quotation date')
+            if unit not in ('Discount not evidenced','Material lines only','All quoted lines','No discount'):
+                raise SourceHold('Invalid discount scope')
+            if rate is not None and (not numeric(rate) or not 0 <= rate <= 1):
+                raise SourceHold('Invalid discount')
+            if (unit == 'Discount not evidenced') != (rate is None) or (unit == 'No discount' and rate != 0):
+                raise SourceHold('Discount evidence mismatch')
+            vendors[vendor] = {'date': item, 'discount': rate, 'scope': unit}
+            continue
+        key = (vendor, category, item, unit)
+        if key in seen or (rate is not None and (not numeric(rate) or rate <= 0)):
+            raise SourceHold('Duplicate or invalid normalized quotation rate')
+        seen.add(key)
+        observations.append({'vendor':vendor,'category':category,'item':item,'unit':unit,'gross':rate})
+    if not observations or {o['vendor'] for o in observations} != set(vendors):
+        raise SourceHold('Vendor rate observations missing metadata')
+    for o in observations:
+        v = vendors[o['vendor']]
+        o['date'] = v['date']
+        gross, discount = o['gross'], v['discount']
+        applies = v['scope'] == 'All quoted lines' or (v['scope'] == 'Material lines only' and o['category'] != 'Tools and miscellaneous accessories')
+        o['effective'] = None if gross is None else round(gross * (1-discount), 8) if applies else gross
+        o['status'] = 'HOLD — unclear amount' if gross is None else 'Discount not evidenced' if discount is None else 'Discount applied' if applies else 'No discount applied'
+    write_json(site/'data/vendor-contractor-rates.v1.json', {
+        'schema':'jp.vendor-contractor-rates.v1',
+        'sourceMode':'AUTHENTICATED_SHEET_READ',
+        'readAtUtc':datetime.now(timezone.utc).isoformat(),
+        'vendors':len(vendors),'observations':observations,
+        'note':'Quoted rates only; brand, length, class and tax unknown unless separately confirmed. No purchase approval.'
+    })
+    return len(observations)
+
+
 def sync(site):
     import google.auth
     from google.auth.transport.requests import AuthorizedSession
@@ -462,6 +516,7 @@ def sync(site):
         worker_codes = {}
         registry = read_registry(session, worker_codes)
         publish_workbook_links(registry, site)
+        vendor_rate_count = publish_vendor_rates(session, registry, site) if 'vendor-contractor-rates' in registry else 0
         publish_quantity_and_projects(session, registry, site)
         try:
             publish_clean_wages(session, registry, site, worker_codes)
@@ -520,6 +575,7 @@ def sync(site):
         workbook, _, _ = registry['pdf-rates']
         counts = {'registered': len(registry), 'indicativeRates': publish_indicative(session, registry['rate-master'], site),
                   'pdfRateObservations': publish_pdf_rates(session, workbook, site),
+                  'vendorQuotationObservations': vendor_rate_count,
                   'restrictedFieldSources': sum(mode == 'Restricted field source' for _, _, mode in registry.values())}
         guidance = read_public_guidance(session, registry['publishing-guide'][0])
     result = {'schema': 'jp.estimating.source-receipt.v1', 'readAtUtc': datetime.now(timezone.utc).isoformat(),
