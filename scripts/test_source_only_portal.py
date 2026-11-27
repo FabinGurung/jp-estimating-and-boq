@@ -27,6 +27,12 @@ with TemporaryDirectory() as tmp:
         'estimating-project-directory.json':dict(schema='jp.estimating.project-directory.v1',groups=[],readAtUtc='2026-11-24T00:00:00Z'),
         'estimating-source-receipt.json':dict(reinforcement=[dict(item=x,sourceRead=True) for x in ['Slab','Beam','Shear wall','Staircase','Footing','Column','Water Tank']])}
     payloads['clean-wage-summaries.json'] = dict(schema='jp.clean-wage-summaries.v1', sections=[], readAtUtc='2026-11-25T00:00:00Z')
+    for kind in ('vendors','contractors'):
+        url='https://docs.google.com/spreadsheets/d/fixture-'+('v' if kind=='vendors' else 'c')*30+'/edit'
+        record=dict(name='Fixture Vendor' if kind=='vendors' else 'Fixture Contractor',url=url+'#gid=123')
+        if kind=='contractors':
+            record['project']='Fixture Project'
+        payloads[f'{kind}-directory.json']=dict(schema='jp.business-directory.v1',kind=kind,source='AUTHENTICATED_SHEET_READ',readAtUtc='2026-11-27T00:00:00Z',registerUrl=url,records=[record])
     for name,value in payloads.items():
         (data/name).write_text(json.dumps(value))
     (site/'measurements-boq.html').write_text('Archived')
@@ -52,7 +58,10 @@ with TemporaryDirectory() as tmp:
     assert 'id="rateEvidence"' in (site/'rate-sources.html').read_text()
     assert (data/'contractor-summary-v0.1/page-005.jpg').is_file()
     assert len(json.loads((data/'contractor-work-items.v0.1.json').read_text())['items'])==158
-    for page in ('index.html','rate-sources.html','projects.html','quantity-workbooks.html','finance.html'):
+    assert 'Fixture Vendor' in (site/'vendors.html').read_text()
+    assert 'Fixture Contractor' in (site/'contractors.html').read_text()
+    assert 'Fixture Vendor' not in (site/'finance.html').read_text()
+    for page in ('index.html','rate-sources.html','projects.html','quantity-workbooks.html','finance.html','vendors.html','contractors.html'):
         html=(site/page).read_text()
         assert 'class="mascot-lane"' not in html
         assert html.count('class="mascot-track"') == 1
