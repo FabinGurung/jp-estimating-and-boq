@@ -96,7 +96,7 @@ def stage(site):
     hero = '<section class="studio-hero" aria-label="Calculation studio"><div class="math-grid"></div><h2>Measure. Calculate. Verify.</h2><div class="equation">Σ (quantity × rate) = cost<br>Steel mass (kg) ≈ L × d² / 162<br><small>L in metres · d in millimetres</small></div></section>'
     pages={
       'index.html':page('index.html','Cost & quantity dashboard','48 working Google Sheets.',hero+'<div id="homeOverview"><p>Loading overview…</p></div><details class="source-group" open><summary>Interactive calculation sculpture — touch or hover</summary><iframe title="Particle dissolution — mathematics sculpture" loading="lazy" src="particle-study.html" style="width:100%;height:320px;border:0;border-radius:12px"></iframe></details>'),
-      'rate-sources.html':page('rate-sources.html','Rates','Working rate libraries and source-derived handbook references.',gallery('rates')+"<section id=\"vendor-contractor-rates\" class=\"section-card\"><h2>Vendor &amp; Contractor Rates</h2><p class=\"caption\">Independent quotation evidence. Compare original and effective rates; pipe lengths, brand, pressure class and tax are not established. Missing rates are held, not treated as zero.</p><p><a href=\"https://docs.google.com/spreadsheets/d/12TvdU4pI_qiTPCe1JGkc1pn1QzKqwLSIS79QUk4ATEY/edit\" target=\"_blank\" rel=\"noopener noreferrer\">Open registered working source via Source Index ↗</a></p><div id=\"vendorRateExplorer\" aria-live=\"polite\">Loading authorized quotation summaries…</div></section><script defer src=\"portal-vendor-rates.js\"></script>"+'<section class="section-card"><h2>Extracted rate handbook</h2><p class="caption">Browse original work-item descriptions, units, provisional values and source pages. Select an illustrated item to see its original scan.</p><div id="rateEvidence">Loading source evidence…</div></section>'),
+      'rate-sources.html':page('rate-sources.html','Rates','Working rate libraries and source-derived handbook references.',gallery('rates')+(ROOT/'scripts/vendor-quotation-static.html').read_text(encoding='utf-8')+'<section class="section-card"><h2>Extracted rate handbook</h2><p class="caption">Browse original work-item descriptions, units, provisional values and source pages. Select an illustrated item to see its original scan.</p><div id="rateEvidence">Loading source evidence…</div></section>'),
       'quantity-workbooks.html':page('quantity-workbooks.html','Quantity workbooks','Reinforcement, concrete quantity takeoff and measurement sources. Engineering approval remains separate.','<div class="formula-strip"><span>V = L × B × H</span><span>Steel kg ≈ L(m) × d(mm)² / 162</span><span>Bar count = ⌈clear bar-centre span / max spacing⌉ + 1</span></div>'+'<section class="section-card"><h2>Project material &amp; work summary</h2><a href="'+ESC(groups[5]['cards'][0]['url'],quote=True)+'" target="_blank" rel="noopener noreferrer">Open project-wise summary workbook ↗</a><p class="caption">Values only · manual snapshot · no purchase release</p></section>'+gallery('quantity')+'<section class="section-card"><h2>Measured site work — Fishtail</h2><a href="'+ESC(groups[5]['cards'][1]['url'],quote=True)+'" target="_blank" rel="noopener noreferrer">Open CLEAN work measurement register ↗</a><p class="caption">Reviewed quantities, normalized units and preserved source evidence. No automatic admission of archived messages.</p></section>'),
       'finance.html':page('finance.html','Working registers','Cross-organization original workbooks. Open a category or search for a register.','<div id="registerDirectory"><p>Loading registers…</p></div><section class="section-card"><h2>Wage List 11 — CLEAN summaries</h2><p class="caption">Existing totals and site summaries read directly from four Sheets. Worker codes only; personal payment and wage details remain in the originals.</p><div id="wageSummaries">Loading source summaries…</div></section>'),
       'projects.html':page('projects.html','Project accounts by organization','Existing payment and bill summaries, read directly from the working Sheets. Expand a project to view each source separately.','<div id="projectDirectory"><p>Loading project records…</p></div>'),
@@ -112,9 +112,6 @@ def stage(site):
         (out/'portal-carousels.js').write_text(js,encoding='utf-8')
         (out/'portal-projects.js').write_text(PROJECTS_JS,encoding='utf-8')
         shutil.copy2(ROOT/'scripts/portal-wages.js',out/'portal-wages.js')
-        shutil.copy2(ROOT/'scripts/portal-vendor-rates.js',out/'portal-vendor-rates.js')
-        import subprocess
-        subprocess.run(['node','--check',str(out/'portal-vendor-rates.js')],check=True)
         shutil.copy2(ROOT/'scripts/particle-study.html',out/'particle-study.html')
         if (site/'data/clean-wage-summaries.json').is_file():
             (out/'data').mkdir(exist_ok=True)
@@ -147,11 +144,6 @@ def stage(site):
             p=site/'data'/name
             if p.is_file():
                 shutil.copy2(p,out/'data'/name)
-        vendor_rates = site/'data/vendor-contractor-rates.v1.json'
-        if vendor_rates.is_file():
-            payload = read(vendor_rates)
-            assert payload['schema'] == 'jp.vendor-contractor-rates.v1' and payload['sourceMode'] == 'AUTHENTICATED_SHEET_READ'
-            shutil.copy2(vendor_rates,out/'data/vendor-contractor-rates.v1.json')
         # Strict allowlist: the old 72-page website and all legacy knowledge assets are NOT published.
         for child in site.iterdir():
             if child.is_dir():shutil.rmtree(child)
