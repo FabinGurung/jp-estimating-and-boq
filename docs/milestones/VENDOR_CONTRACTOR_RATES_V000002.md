@@ -1,0 +1,5 @@
+# Independent vendor and contractor quotation authorities — V000002
+
+Owner correction, 27 November 2026. Retain the existing Calculation Studio template. The owner directs one permanent vendor or contractor folder, one native Google Sheet for item rates and one native Google Doc for source interpretation and revision notes. All are owned by Estimating, not Desk Resources. Source images remain restricted. The previous combined workbook is a historical comparison reference, not a publishing authority. No live quotation-sheet reader or cross-vendor dashboard on the Rates page.
+
+The Rates page uses static AI-interpreted vendor-specific rate values, with user-authorized working Sheet links. New vendor entries are appended to scripts/vendor-quotation-static.html after reading the appropriate individual authority. Missing or ambiguous figures remain unpriced. No public evidence-image links, no comparison ranking, no purchase approval. A future comparison or versus tab is separate work and must not change the individual source records. Existing rate gallery, handbook, navigation, mascot, and particle effect retained.
