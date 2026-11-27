@@ -99,7 +99,7 @@ def stage(site):
         data=read(site/f'data/{kind}-directory.json')
         assert data['schema']=='jp.business-directory.v1' and data['kind']==kind and data['source']=='AUTHENTICATED_SHEET_READ'
         def link_ok(url):
-            return re.fullmatch(r'https://docs\\.google\\.com/spreadsheets/d/[A-Za-z0-9_-]{20,160}/edit(?:#gid=\\d+)?',url)
+            return re.fullmatch(r'https://docs\.google\.com/spreadsheets/d/[A-Za-z0-9_-]{20,160}/edit(?:#gid=\d+)?',url)
         assert link_ok(data['registerUrl'])
         records=data['records']
         assert records and all(set(r)==({'name','url'} if kind=='vendors' else {'name','project','url'}) and link_ok(r['url']) for r in records)
