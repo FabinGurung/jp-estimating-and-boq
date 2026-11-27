@@ -450,6 +450,81 @@ def publish_clean_wages(session, registry, site, codes):
                 'readAtUtc':datetime.now(timezone.utc).isoformat(),'sections':data})
 
 
+
+def publish_business_directories(session, registry, site):
+    """Read existing identities and source-tab metadata only; publish no raw financial cells."""
+    def normalize(s):
+        return re.sub(r'[^a-z0-9]+', ' ', s.casefold()).strip()
+    def label(s):
+        if not isinstance(s, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 ._&()'/-]{0,119}", s) or PRIVATE.search(s):
+            raise SourceHold('Unsafe business directory label')
+        return re.sub(r'[_-]+', ' ', s).strip()
+    def tabs(file):
+        props = get_json(session, f'https://sheets.googleapis.com/v4/spreadsheets/{file}',
+                         {'fields':'sheets(properties(sheetId,title))'}, 'Business register worksheet metadata')
+        result = {}
+        for sheet in props.get('sheets', []):
+            p = sheet['properties']
+            key = normalize(p['title'])
+            if key in result:
+                raise SourceHold('Ambiguous normalized worksheet name')
+            result[key] = p['sheetId']
+        return result
+    def source_link(file, tab, lookup):
+        gid = lookup.get(normalize(tab))
+        if type(gid) is not int or gid < 0:
+            raise SourceHold('Registered business worksheet missing or ambiguous')
+        return f'https://docs.google.com/spreadsheets/d/{file}/edit#gid={gid}'
+    vfile, _, vmode = registry['finance-3']
+    cfile, _, cmode = registry['finance-2']
+    if vmode != 'Finance reader' or cmode != 'Finance reader':
+        raise SourceHold('Business directory source contract changed')
+    index = sheet_rows(session, vfile, "'VB_MACHINE_REGISTRY'!A4:G20", 'Vendor section index')
+    sections = [r for r in index if len(r) >= 5 and r[1] == 'VB_VENDOR_CROSSWALK']
+    if len(sections) != 1:
+        raise SourceHold('Vendor crosswalk missing or ambiguous')
+    _, _, start, end, count = sections[0][:5]
+    start, end, count = int(start), int(end), int(count)
+    if not (1 <= start <= end <= 20000 and end-start == count and 0 < count <= 2000):
+        raise SourceHold('Vendor crosswalk boundary invalid')
+    vr = sheet_rows(session, vfile, f"'VB_MACHINE_REGISTRY'!A{start}:C{end}", 'Vendor identity crosswalk')
+    if not vr or vr[0] != ['Vendor Key','Supplier Tab','Identity Status'] or len(vr)-1 != count:
+        raise SourceHold('Vendor crosswalk header/count mismatch')
+    vtabs = tabs(vfile)
+    vendors, seen = [], set()
+    for row in vr[1:]:
+        if len(row) != 3 or not row[0] or row[0] in seen or row[2] != 'PROVISIONAL_TAB_IDENTITY':
+            raise SourceHold('Vendor identity record invalid')
+        seen.add(row[0])
+        vendors.append({'name':label(row[1]), 'url':source_link(vfile,row[1],vtabs)})
+    cr = sheet_rows(session, cfile, "'CT_CONTRACTOR_REGISTER'!A1:F2000", 'Contractor identity register')
+    if not cr or cr[0] != ['Candidate Contractor ID','Source Name','Source Project','Candidate Project ID','Original Worksheet','Identity Status']:
+        raise SourceHold('Contractor identity header mismatch')
+    ctabs = tabs(cfile)
+    contractors, seen = [], set()
+    for row in cr[1:]:
+        if not row:
+            continue
+        if len(row) != 6 or not row[0] or row[5] != 'SOURCE_NAME_CANDIDATE':
+            raise SourceHold('Invalid contractor identity record')
+        key = (row[0], row[4])
+        if key in seen:
+            raise SourceHold('Duplicate contractor worksheet mapping')
+        seen.add(key)
+        contractors.append({'name':label(row[1]), 'project':label(row[2]), 'url':source_link(cfile,row[4],ctabs)})
+    if not contractors:
+        raise SourceHold('Contractor directory empty')
+    # These are source identities, not certification or payment status.
+    for name, records, file in [('vendors',vendors,vfile),('contractors',contractors,cfile)]:
+        write_json(site/f'data/{name}-directory.json', {
+            'schema':'jp.business-directory.v1','kind':name,'source':'AUTHENTICATED_SHEET_READ',
+            'readAtUtc':datetime.now(timezone.utc).isoformat(),
+            'registerUrl':f'https://docs.google.com/spreadsheets/d/{file}/edit',
+            'records':sorted(records,key=lambda x:(x['name'].casefold(),x.get('project','')))
+        })
+    print(f'Business directory: {len(vendors)} vendor and {len(contractors)} contractor source rows; zero amounts published')
+
+
 def sync(site):
     import google.auth
     from google.auth.transport.requests import AuthorizedSession
@@ -462,6 +537,7 @@ def sync(site):
         worker_codes = {}
         registry = read_registry(session, worker_codes)
         publish_workbook_links(registry, site)
+        publish_business_directories(session, registry, site)
         publish_quantity_and_projects(session, registry, site)
         try:
             publish_clean_wages(session, registry, site, worker_codes)

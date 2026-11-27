@@ -11,7 +11,7 @@ from calculation_studio_theme import EXTRA_CSS, MASCOT, HOME_JS, RATE_JS
 
 ROOT=Path(__file__).resolve().parents[1]
 NAV=[('index.html','Home'),('rate-sources.html','Rates'),('projects.html','Project accounts'),
-     ('quantity-workbooks.html','Quantity workbooks'),('finance.html','Registers')]
+     ('quantity-workbooks.html','Quantity workbooks'),('vendors.html','Vendors'),('contractors.html','Contractors'),('finance.html','Registers')]
 ESC=html.escape
 CSS="""
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f6f7f3;color:#183b31;font:16px/1.5 system-ui,-apple-system,sans-serif}a{color:#146344}header{background:#17382f;color:white;padding:14px max(16px,calc((100vw - 1100px)/2));position:sticky;top:0;z-index:200}header strong{font-size:1.05rem;letter-spacing:.06em}nav{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;margin-top:10px;scrollbar-width:thin}nav a{color:#fff;padding:9px 12px;border-radius:8px;text-decoration:none;font-size:.88rem;font-weight:650}nav a[aria-current=page]{background:#e5e9d8;color:#17382f}main{max-width:1100px;margin:auto;padding:24px 16px 40px;min-width:0}h1{font-size:clamp(1.65rem,4vw,2.4rem);margin:0 0 7px;line-height:1.2}h2{font-size:1.2rem;margin:0 0 10px}.sub{color:#586d61;margin:0 0 18px}.org{margin:20px 0}.project-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr));gap:12px}.project{background:white;border:1px solid #d3ddd5;border-radius:13px;padding:16px;min-width:0}.project h3{margin:0 0 10px;font-size:1.08rem}.source-row{padding:10px 0;border-top:1px solid #e3e9e4;font-size:.9rem}.source-row a{font-weight:650}.source-row strong{display:block;font-variant-numeric:tabular-nums;margin:3px 0}.source-row small{display:block;color:#647568}.caption{font-size:.85rem;color:#607166}.footer{margin-top:18px;border-top:1px solid #d4ddd4;padding-top:14px;font-size:.85rem}button,a{touch-action:manipulation}a:focus-visible,button:focus-visible{outline:3px solid #558f75;outline-offset:3px}
@@ -94,11 +94,27 @@ def stage(site):
         expected=json.dumps([[g['key'],len(g['cards'])] for g in variants[key]],separators=(',',':'))
         return f'<section id="registeredWorkbookLinks"><div id="approvedWorkbookGalleries" data-json="data/{key}-links.json" data-expected="{ESC(expected,quote=True)}"><p data-workbook-loading>Loading working Google Sheets…</p></div></section>'
     hero = '<section class="studio-hero" aria-label="Calculation studio"><div class="math-grid"></div><h2>Measure. Calculate. Verify.</h2><div class="equation">Σ (quantity × rate) = cost<br>Steel mass (kg) ≈ L × d² / 162<br><small>L in metres · d in millimetres</small></div></section>'
+
+    def business_page(kind):
+        data=read(site/f'data/{kind}-directory.json')
+        assert data['schema']=='jp.business-directory.v1' and data['kind']==kind and data['source']=='AUTHENTICATED_SHEET_READ'
+        def link_ok(url):
+            return re.fullmatch(r'https://docs\\.google\\.com/spreadsheets/d/[A-Za-z0-9_-]{20,160}/edit(?:#gid=\\d+)?',url)
+        assert link_ok(data['registerUrl'])
+        records=data['records']
+        assert records and all(set(r)==({'name','url'} if kind=='vendors' else {'name','project','url'}) and link_ok(r['url']) for r in records)
+        items=[]
+        for r in records:
+            project=f'<p class="caption">{ESC(r["project"])}</p>' if 'project' in r else ''
+            items.append(f'<article class="project"><h3>{ESC(r["name"])}</h3>{project}<a href="{ESC(r["url"],quote=True)}" target="_blank" rel="noopener noreferrer">Open original worksheet ↗</a></article>')
+        return f'<section class="section-card"><p><a href="{ESC(data["registerUrl"],quote=True)}" target="_blank" rel="noopener noreferrer">Open LIVE working register ↗</a></p><p class="caption">{len(records)} source entries · read {ESC(data["readAtUtc"][:10])} · original Google Sheet permissions apply</p><div class="project-grid">{"".join(items)}</div></section>'
     pages={
       'index.html':page('index.html','Cost & quantity dashboard','48 working Google Sheets.',hero+'<div id="homeOverview"><p>Loading overview…</p></div><details class="source-group" open><summary>Interactive calculation sculpture — touch or hover</summary><iframe title="Particle dissolution — mathematics sculpture" loading="lazy" src="particle-study.html" style="width:100%;height:320px;border:0;border-radius:12px"></iframe></details>'),
       'rate-sources.html':page('rate-sources.html','Rates','Working rate libraries and source-derived handbook references.',gallery('rates')+(ROOT/'scripts/vendor-quotation-static.html').read_text(encoding='utf-8')+'<section class="section-card"><h2>Extracted rate handbook</h2><p class="caption">Browse original work-item descriptions, units, provisional values and source pages. Select an illustrated item to see its original scan.</p><div id="rateEvidence">Loading source evidence…</div></section>'),
       'quantity-workbooks.html':page('quantity-workbooks.html','Quantity workbooks','Reinforcement, concrete quantity takeoff and measurement sources. Engineering approval remains separate.','<div class="formula-strip"><span>V = L × B × H</span><span>Steel kg ≈ L(m) × d(mm)² / 162</span><span>Bar count = ⌈clear bar-centre span / max spacing⌉ + 1</span></div>'+'<section class="section-card"><h2>Project material &amp; work summary</h2><a href="'+ESC(groups[5]['cards'][0]['url'],quote=True)+'" target="_blank" rel="noopener noreferrer">Open project-wise summary workbook ↗</a><p class="caption">Values only · manual snapshot · no purchase release</p></section>'+gallery('quantity')+'<section class="section-card"><h2>Measured site work — Fishtail</h2><a href="'+ESC(groups[5]['cards'][1]['url'],quote=True)+'" target="_blank" rel="noopener noreferrer">Open CLEAN work measurement register ↗</a><p class="caption">Reviewed quantities, normalized units and preserved source evidence. No automatic admission of archived messages.</p></section>'),
-      'finance.html':page('finance.html','Working registers','Cross-organization original workbooks. Open a category or search for a register.','<div id="registerDirectory"><p>Loading registers…</p></div>'+(ROOT/'scripts/business-records-static.html').read_text(encoding='utf-8')+'<section class="section-card"><h2>Wage List 11 — CLEAN summaries</h2><p class="caption">Existing totals and site summaries read directly from four Sheets. Worker codes only; personal payment and wage details remain in the originals.</p><div id="wageSummaries">Loading source summaries…</div></section>'),
+      'vendors.html':page('vendors.html','Vendors','Supplier identities from the live Vendor Bills register. Quotation rates remain separate.',business_page('vendors')),
+      'contractors.html':page('contractors.html','Contractors','Contractor identities from the live Contractor Bills register. A recorded claim is not a certified payment.',business_page('contractors')),
+      'finance.html':page('finance.html','Working registers','Cross-organization original workbooks. Open a category or search for a register.','<div id="registerDirectory"><p>Loading registers…</p></div>'+'<section class="section-card" id="vendor-contractor-business-records"><h2>Business records</h2><p><a href="vendors.html">Vendors</a> · <a href="contractors.html">Contractors</a></p></section>'+'<section class="section-card"><h2>Wage List 11 — CLEAN summaries</h2><p class="caption">Existing totals and site summaries read directly from four Sheets. Worker codes only; personal payment and wage details remain in the originals.</p><div id="wageSummaries">Loading source summaries…</div></section>'),
       'projects.html':page('projects.html','Project accounts by organization','Existing payment and bill summaries, read directly from the working Sheets. Expand a project to view each source separately.','<div id="projectDirectory"><p>Loading project records…</p></div>'),
       'source-sheets.html':'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=index.html#registeredWorkbookLinks"><title>Working Google Sheets</title></head><body><a href="index.html#registeredWorkbookLinks">Open the workbook galleries</a></body></html>'
     }
@@ -152,8 +168,8 @@ def stage(site):
     assert sorted(p.name for p in site.glob('*.html'))==sorted(list(pages)+['particle-study.html'])
     assert not (site/'measurements-boq.html').exists()
     assert not (site/'projects').exists()
-    assert len(list(site.rglob('*.html')))==7
-    print('CALCULATION STUDIO PASS: 5 working routes + source-directory redirect; 48 original links; restored reviewed PDF evidence.')
+    assert len(list(site.rglob('*.html')))==9
+    print('CALCULATION STUDIO PASS: 7 working routes + source-directory redirect; 48 original links; restored reviewed PDF evidence.')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--site',required=True,type=Path);stage(p.parse_args().site)
